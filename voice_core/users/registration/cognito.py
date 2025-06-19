@@ -1,25 +1,14 @@
 import boto3
-import hmac
-import hashlib
-import base64
 import logging
 from django.conf import settings
 from botocore.exceptions import ClientError
 from rest_framework.exceptions import ValidationError
+from voice_core.users.utils import get_secret_hash
 
 logger = logging.getLogger(__name__)
 
 # Initialize Cognito IDP client
 client = boto3.client("cognito-idp", region_name=settings.COGNITO_REGION)
-
-def get_secret_hash(username: str) -> str:
-    message = username + settings.COGNITO_APP_CLIENT_ID
-    digest = hmac.new(
-        settings.COGNITO_APP_CLIENT_SECRET.encode(),
-        message.encode(),
-        hashlib.sha256
-    ).digest()
-    return base64.b64encode(digest).decode()
 
 def create_cognito_user(email: str, password: str, name: str = "") -> str:
     """Creates a user in AWS Cognito and confirms the signup."""

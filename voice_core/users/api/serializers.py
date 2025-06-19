@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from voice_core.users.models import User
-from voice_core.users.services import create_cognito_user
 
 
 class UserSerializer(serializers.ModelSerializer[User]):

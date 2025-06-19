@@ -11,9 +11,9 @@ from voice_core.users.models import User
 from .serializers import UserSerializer
 
 
-class UserViewSet(CreateModelMixin, RetrieveModelMixin, GenericViewSet):
+class UserViewSet(CreateModelMixin, GenericViewSet):
     serializer_class = UserSerializer
-    queryset = User.objects.all()
+    queryset = User.objects.none()
     lookup_field = "pk"
 
     def get_permissions(self):
@@ -21,6 +21,10 @@ class UserViewSet(CreateModelMixin, RetrieveModelMixin, GenericViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
-    def get_queryset(self, *args, **kwargs):
-        assert isinstance(self.request.user.id, int)
-        return self.queryset.filter(id=self.request.user.id)
+    def get_object(self):
+        return self.request.user
+    
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)

@@ -1,9 +1,12 @@
 import logging
 from typing import TYPE_CHECKING
-
-from voice_core.users.services import create_cognito_user
+from django.db import transaction
+from rest_framework.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import UserManager as DjangoUserManager
+
+from voice_core.users.registration.cognito import create_cognito_user
+from voice_core.users.utils import resolve_tenant_from_email
 
 if TYPE_CHECKING:
     from .models import User  # noqa: F401
@@ -20,17 +23,26 @@ class UserManager(DjangoUserManager["User"]):
         """
         if not email:
             raise ValueError("The given email must be set")
+        
+        # Always resolve tenant from email
+        tenant = resolve_tenant_from_email(email)
+        extra_fields["tenant"] = tenant
 
-        email = self.normalize_email(email)
-        cognito_sub = create_cognito_user(email, password, extra_fields.get("name", ""))
-        extra_fields["cognito_sub"] = cognito_sub
-        logger.info(f"Cognito user created with sub: {cognito_sub}")
+        try:
+            with transaction.atomic():
+                cognito_sub = create_cognito_user(email, password, extra_fields.get("name", ""))
+                extra_fields["cognito_sub"] = cognito_sub
 
-        user = self.model(email=email, **extra_fields)
-        user.password = make_password(password)
-        user.save(using=self._db)
-        logger.info(f"User saved to Django DB: {email}")
-        return user
+                user = self.model(email=email, **extra_fields)
+                user.password = make_password(password)
+                user.save(using=self._db)
+                logger.info(f"User created: {email} (Cognito sub: {cognito_sub})")
+                return user
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.exception("Failed to create user")
+            raise ValidationError("Failed to create user. Please try again.")
 
     def create_user(self, email: str, password: str | None = None, **extra_fields):  # type: ignore[override]
         extra_fields.setdefault("is_staff", False)

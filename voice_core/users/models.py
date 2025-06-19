@@ -5,8 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db.models import CharField
 from django.db.models import EmailField
 from django.db.models import ForeignKey
-from django.db.models import SET_NULL
-from django.urls import reverse
+from django.db.models import PROTECT
 from django.utils.translation import gettext_lazy as _
 
 from .managers import UserManager
@@ -18,13 +17,7 @@ class User(AbstractUser):
     If adding fields that need to be filled at user signup,
     check forms.SignupForm and forms.SocialSignupForms accordingly.
     """
-    tenant = ForeignKey(
-        "tenant.Tenant",
-        on_delete=SET_NULL,
-        null=True,
-        blank=True,
-        related_name="users",
-    )
+    tenant = ForeignKey("tenant.Tenant", on_delete=PROTECT, related_name="users")
 
     # First and last name do not cover name patterns around the globe
     name = CharField(_("Name of User"), blank=True, max_length=255)
