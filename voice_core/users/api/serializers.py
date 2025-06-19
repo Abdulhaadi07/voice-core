@@ -1,13 +1,20 @@
 from rest_framework import serializers
 
 from voice_core.users.models import User
+from voice_core.users.services import create_cognito_user
 
 
 class UserSerializer(serializers.ModelSerializer[User]):
+    password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
-        fields = ["name", "url"]
-
+        fields = ["id", "email", "name", "password"]
         extra_kwargs = {
-            "url": {"view_name": "api:user-detail", "lookup_field": "pk"},
+            "email": {"required": True},
+            "name": {"required": True},
         }
+    
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        return User.objects.create_user(password=password, **validated_data)

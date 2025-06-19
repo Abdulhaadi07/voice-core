@@ -1,10 +1,14 @@
+import logging
 from typing import TYPE_CHECKING
 
+from voice_core.users.services import create_cognito_user
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import UserManager as DjangoUserManager
 
 if TYPE_CHECKING:
     from .models import User  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 
 class UserManager(DjangoUserManager["User"]):
@@ -15,12 +19,17 @@ class UserManager(DjangoUserManager["User"]):
         Create and save a user with the given email and password.
         """
         if not email:
-            msg = "The given email must be set"
-            raise ValueError(msg)
+            raise ValueError("The given email must be set")
+
         email = self.normalize_email(email)
+        cognito_sub = create_cognito_user(email, password, extra_fields.get("name", ""))
+        extra_fields["cognito_sub"] = cognito_sub
+        logger.info(f"Cognito user created with sub: {cognito_sub}")
+
         user = self.model(email=email, **extra_fields)
         user.password = make_password(password)
         user.save(using=self._db)
+        logger.info(f"User saved to Django DB: {email}")
         return user
 
     def create_user(self, email: str, password: str | None = None, **extra_fields):  # type: ignore[override]

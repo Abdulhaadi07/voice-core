@@ -15,6 +15,7 @@ services:
       - redis
     volumes:
       - .:/app:z
+      - ~/.aws:/aws:ro
     env_file:
       - ./.envs/.local/.django
       - ./.envs/.local/.postgres
@@ -33,6 +34,8 @@ services:
       - voice_core_local_postgres_data_backups:/backups
     env_file:
       - ./.envs/.local/.postgres
+    ports:
+      - '5433:5432'
 
   redis:
     image: docker.io/redis:6

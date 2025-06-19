@@ -4,6 +4,8 @@ from typing import ClassVar
 from django.contrib.auth.models import AbstractUser
 from django.db.models import CharField
 from django.db.models import EmailField
+from django.db.models import ForeignKey
+from django.db.models import SET_NULL
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -16,24 +18,27 @@ class User(AbstractUser):
     If adding fields that need to be filled at user signup,
     check forms.SignupForm and forms.SocialSignupForms accordingly.
     """
+    tenant = ForeignKey(
+        "tenant.Tenant",
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     # First and last name do not cover name patterns around the globe
     name = CharField(_("Name of User"), blank=True, max_length=255)
+    email = EmailField(_("email address"), unique=True)
+    cognito_sub = CharField(_("Cognito User ID"), max_length=128, unique=True)
+
     first_name = None  # type: ignore[assignment]
     last_name = None  # type: ignore[assignment]
-    email = EmailField(_("email address"), unique=True)
     username = None  # type: ignore[assignment]
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ["name"]
 
     objects: ClassVar[UserManager] = UserManager()
 
-    def get_absolute_url(self) -> str:
-        """Get URL for user's detail view.
-
-        Returns:
-            str: URL for user detail.
-
-        """
-        return reverse("users:detail", kwargs={"pk": self.id})
+    def __str__(self):
+        return self.email
