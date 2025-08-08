@@ -5,6 +5,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db.models import CharField
 from django.db.models import EmailField
 from django.db.models import ForeignKey
+from django.db.models import UUIDField
+from django.db.models import DateTimeField
 from django.db.models import PROTECT
 from django.utils.translation import gettext_lazy as _
 
@@ -23,6 +25,12 @@ class User(AbstractUser):
     name = CharField(_("Name of User"), blank=True, max_length=255)
     email = EmailField(_("email address"), unique=True)
     cognito_sub = CharField(_("Cognito User ID"), max_length=128, unique=True)
+
+    # Wazo-related fields
+    wazo_user_id = UUIDField(_("Wazo User ID"), blank=True, null=True)
+    wazo_username = CharField(_("Wazo Username"), max_length=255, blank=True, null=True)
+    wazo_provisioned_at = DateTimeField(_("Wazo Provisioned At"), blank=True, null=True)
+
 
     first_name = None  # type: ignore[assignment]
     last_name = None  # type: ignore[assignment]
