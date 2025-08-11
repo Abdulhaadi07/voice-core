@@ -44,3 +44,30 @@ def create_cognito_user(email: str, password: str, name: str = "") -> str:
     except ClientError as e:
         logger.error(f"Failed to create Cognito user: {e.response['Error']['Message']}")
         raise Exception(f"Failed to create Cognito user: {e.response['Error']['Message']}")
+
+
+def delete_cognito_user(email: str) -> bool:
+    """Deletes a user from AWS Cognito."""
+    try:
+        # Get user by username (email)
+        response = client.admin_get_user(
+            UserPoolId=settings.COGNITO_USER_POOL_ID,
+            Username=email,
+        )
+        logger.info(f"User found for deletion: {response['Username']}")
+
+        # Delete the user
+        client.admin_delete_user(
+            UserPoolId=settings.COGNITO_USER_POOL_ID,
+            Username=email,
+        )
+        
+        logger.info(f"Cognito user deleted successfully: {email}")
+        return True
+        
+    except client.exceptions.UserNotFoundException:
+        logger.warning(f"Cognito user not found for deletion: {email}")
+        return True  # Consider it successful if user doesn't exist
+    except ClientError as e:
+        logger.error(f"Failed to delete Cognito user {email}: {e.response['Error']['Message']}")
+        return False
