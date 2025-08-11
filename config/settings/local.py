@@ -22,8 +22,19 @@ ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]  # noqa: S104
 # https://docs.djangoproject.com/en/dev/ref/settings/#caches
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "",
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    },
+    "wazo_tokens": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "TIMEOUT": os.getenv("WAZO_TOKEN_EXPIRATION"),  # 1 hour default
     },
 }
 
@@ -80,3 +91,9 @@ COGNITO_REGION = "us-east-1"
 COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
 COGNITO_APP_CLIENT_ID = os.getenv("COGNITO_APP_CLIENT_ID")
 COGNITO_APP_CLIENT_SECRET = os.getenv("COGNITO_APP_CLIENT_SECRET")
+
+# Wazo credentials
+WAZO_ADMIN_USERNAME = os.getenv("WAZO_ADMIN_USERNAME")
+WAZO_ADMIN_PASSWORD = os.getenv("WAZO_ADMIN_PASSWORD")
+WAZO_API_URL=os.getenv("WAZO_API_URL")
+WAZO_TOKEN_EXPIRATION=os.getenv("WAZO_TOKEN_EXPIRATION")
