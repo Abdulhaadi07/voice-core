@@ -6,11 +6,12 @@ from requests.auth import HTTPBasicAuth
 
 logger = logging.getLogger(__name__)
 
-WAZO_TOKEN_CACHE_KEY = 'wazo_admin_token' # Cache key for Wazo admin token
-_cache_timeout = int(WAZO_TOKEN_EXPIRATION) 
+# Cache key for Wazo admin token
+WAZO_TOKEN_CACHE_KEY = 'wazo_admin_token'
+_cache_timeout = int(WAZO_TOKEN_EXPIRATION) #getattr(settings, 'WAZO_TOKEN_EXPIRATION', 3600)  # 1 hour default timeout
 
 
-def get_wazo_admin_token() -> str: # return wazo admin token uuid
+def get_wazo_admin_token() -> str:
     """
     Get Wazo admin token with Redis caching.
     If cached token is valid, returns it. Otherwise, creates a new token and caches it in Redis.

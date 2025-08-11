@@ -37,25 +37,28 @@ class UserManager(DjangoUserManager["User"]):
         
         try:
             # Step 1: Create Cognito user
+            cognito_start_time = datetime.now()
             cognito_sub = create_cognito_user(email, password, extra_fields.get("name", ""))
             if not cognito_sub:
                 logger.error(f"Fail to create user at cognito")
                 raise raise_custom_drf_exception(503,"Failed to create Cognito user")
             
             extra_fields["cognito_sub"] = cognito_sub
-            
+            cognito_end_time = datetime.now()
+
             # Step 2: Save user to Django DB
             user = self.model(email=email, **extra_fields)
             user.password = make_password(password)
             user.save(using=self._db)
             user.refresh_from_db()
+            djangoDb_user_save_end_time = datetime.now()
 
             # Step 3: Get Wazo admin token
             admin_token = get_wazo_admin_token()
             if not admin_token:
                 # If admin token fails, delete user from DB and Cognito
                 logger.exception(f"Fail to get Wazo admin token")
-                self._cleanup_on_failure(email, cognito_sub, user)
+                self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to get Wazo admin token")
             
             # Step 4: Get tenant UUID
@@ -63,7 +66,7 @@ class UserManager(DjangoUserManager["User"]):
             if not tenant_uuid:
                 # If tenant UUID fails, delete user from DB and Cognito
                 logger.exception(f"Fail to get wazo tenant UUID")
-                self._cleanup_on_failure(email, cognito_sub, user)
+                self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to get Wazo tenant UUID")
             
             # Step 5: Create Wazo user
@@ -71,37 +74,53 @@ class UserManager(DjangoUserManager["User"]):
             if not wazo_user_id:
                 # If Wazo user creation fails, delete user from DB and Cognito
                 logger.exception(f"Fail to create Wazo user")
-                self._cleanup_on_failure(email, cognito_sub, user)
+                self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to create Wazo user")
             
             # Step 6: Save all Wazo information
             try:
+                # Save user Wazo information
                 user.wazo_user_id = wazo_user_id
                 user.wazo_username = wazo_username
                 user.wazo_provisioned_at = datetime.now()
                 user.save()
                 
+                wazo_user_create_end_time = datetime.now()
                 logger.info(f"User created successfully: {email} (Cognito sub: {cognito_sub})")
+
+                # Calculate all time diffs
+                cognito_duration = (cognito_end_time - cognito_start_time).total_seconds()
+                db_duration = (djangoDb_user_save_end_time - cognito_end_time).total_seconds()
+                wazo_duration = (wazo_user_create_end_time - djangoDb_user_save_end_time).total_seconds()
+                total_duration = (wazo_user_create_end_time - cognito_start_time).total_seconds()
+
+                logger.info(
+                    f"User created successfully: {email} (Cognito sub: {cognito_sub}) | "
+                    f"Cognito: {cognito_duration:.3f}s, "
+                    f"DB Save: {db_duration:.3f}s, "
+                    f"Wazo: {wazo_duration:.3f}s, "
+                    f"Total: {total_duration:.3f}s"
+                )
                 return user
     
             except Exception as e:
-                # If saving Wazo info fails, cleanup everything
+                # If saving Wazo info fails, rollback everything
                 logger.exception(f"Fail at saving wazo info: {wazo_user_id} {e} ")
-                self._cleanup_on_failure(email, cognito_sub, user, str(wazo_user_id), admin_token)
+                self._rollback_on_failure(email, cognito_sub, user, str(wazo_user_id), admin_token)
                 raise raise_custom_drf_exception(503,f"Failed to save Wazo information: {str(e)}")
                 
         except (ValidationError, APIException):
             raise
         except Exception as e:
-            # If any other error occurs, cleanup everything
-            self._cleanup_on_failure(email, cognito_sub, user)
+            # If any other error occurs, rollback everything
+            self._rollback_on_failure(email, cognito_sub, user)
             logger.exception("Failed to create user")
             raise raise_custom_drf_exception(503,f"Failed to create user: {str(e)}")
 
-    def _cleanup_on_failure(self, email: str, cognito_sub: str | None, user=None, wazo_user_uuid: str | None = None, admin_token: str | None = None):
-        """Cleanup method to delete user from all systems on failure."""
-        logger.info(f"Starting cleanup for failed user creation: {email}")
-        cleanup_errors = []
+    def _rollback_on_failure(self, email: str, cognito_sub: str | None, user=None, wazo_user_uuid: str | None = None, admin_token: str | None = None):
+        """Rollback method to delete user from all systems on failure."""
+        logger.info(f"Starting rollback for failed user creation: {email}")
+        rollback_errors = []
         
         # Delete from Django DB if user was created
         if user and user.pk:
@@ -111,7 +130,7 @@ class UserManager(DjangoUserManager["User"]):
             except Exception as e:
                 error_msg = f"Failed to delete user from Django DB: {email}, error: {e}"
                 logger.error(error_msg)
-                cleanup_errors.append(error_msg)
+                rollback_errors.append(error_msg)
         
         # Delete from Cognito if cognito_sub exists
         if cognito_sub:
@@ -121,7 +140,7 @@ class UserManager(DjangoUserManager["User"]):
             except Exception as e:
                 error_msg = f"Failed to delete user from Cognito: {email}, error: {e}"
                 logger.error(error_msg)
-                cleanup_errors.append(error_msg)
+                rollback_errors.append(error_msg)
         
         # Delete from Wazo if wazo_user_uuid exists
         if wazo_user_uuid:
@@ -131,12 +150,12 @@ class UserManager(DjangoUserManager["User"]):
             except Exception as e:
                 error_msg = f"Failed to delete user from Wazo: {email}, error: {e}"
                 logger.error(error_msg)
-                cleanup_errors.append(error_msg)
+                rollback_errors.append(error_msg)
         
-        # If any cleanup operations failed, raise an exception
-        if cleanup_errors:
-            logger.error(f"Fail to clean up")
-            raise raise_custom_drf_exception(503, f"Cleanup failed: {'; '.join(cleanup_errors)}")
+        # If any rollback operations failed, raise an exception
+        if rollback_errors:
+            logger.error(f"Rollback failed: {'; '.join(rollback_errors)}")
+            raise raise_custom_drf_exception(503, f"rollback failed: {'; '.join(rollback_errors)}")
 
     def create_user(self, email: str, password: str | None = None, **extra_fields):  # type: ignore[override]
         extra_fields.setdefault("is_staff", False)

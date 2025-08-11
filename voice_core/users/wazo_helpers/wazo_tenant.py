@@ -16,6 +16,7 @@ def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> str: # return tena
     tenant_uuid = create_wazo_tenant(tenant.name, admin_token)
     logger.info(f"Created New Wazo tenant: {tenant_uuid}")
 
+    # Update tenant object and save
     try:
         tenant.wazo_tenant_uuid = tenant_uuid
         tenant.save(update_fields=['wazo_tenant_uuid'])
@@ -24,7 +25,6 @@ def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> str: # return tena
         raise e 
     
     return tenant_uuid
-
 
 def create_wazo_tenant(tenant_name: str, admin_token: str) -> str: # return tenant uuid
     wazo_api_url = WAZO_API_URL
@@ -36,7 +36,7 @@ def create_wazo_tenant(tenant_name: str, admin_token: str) -> str: # return tena
     payload = {
         "name": tenant_name
     }
-
+    logger.info(f"Tenant create request for: {payload}")
     try:
         response = requests.post(
             url,
@@ -44,6 +44,7 @@ def create_wazo_tenant(tenant_name: str, admin_token: str) -> str: # return tena
             headers=headers,
             verify=False  # skip SSL verification like `curl -k`
         )
+        
         if response.status_code == 200 or response.status_code == 201:
             logger.info("Tenant created successfully!")
             data = response.json()
@@ -51,8 +52,8 @@ def create_wazo_tenant(tenant_name: str, admin_token: str) -> str: # return tena
             
             return uuid.UUID(new_tenant_uuid)
         else:
-            print(f"Error {response.status_code}: {response.text}")
+            logger.info(f"Error {response.status_code}: {response.text}")
             return None
     except requests.RequestException as e:
-        print("Request failed:", e)
+        logger.info("Request failed:", e)
         return None

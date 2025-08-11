@@ -7,9 +7,8 @@ import string
 
 logger = logging.getLogger(__name__)
 
-def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, str]: # create_wazo_user
+def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, str]: 
     wazo_api_url = WAZO_API_URL
-
     url = f"{wazo_api_url}/api/auth/0.1/users"
     headers = {
         "Content-Type": "application/json",
@@ -24,6 +23,7 @@ def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, st
         "email_address": user.email,
         "password": random_password,
     }
+    logger.info(f"User create request for: {payload}")
 
     try:
         response = requests.post(
@@ -34,10 +34,8 @@ def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, st
         )
         
         if response.status_code == 200 or response.status_code == 201:
-            logger.info(f"User created successfully! {payload}")
-            
             data = response.json()
-            logger.info(f"Response data at user creation{data}")
+            logger.info(f"User created successfully!: {data}")
             
             wazo_user_id = uuid.UUID(data["uuid"])
             wazo_username = data["username"]
@@ -45,11 +43,10 @@ def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, st
                 wazo_username = ""
             return [wazo_user_id, wazo_username]
         else:
-            logger.error(f"Fail to create wazo user: API response call fails! {response.status_code} {response.text}")
+            logger.error(f"Fail to create wazo user! {response.status_code} {response.text}")
             return None
     except requests.RequestException as e:
-        logger.error(f"Fail to create wazo user!: {e}")
-        print("Request failed:", e)
+        logger.error("Error calling Wazo API to create user:", e)
         raise
 
 
@@ -71,7 +68,7 @@ def generate_valid_password(length=12):
     
     return ''.join(password_list)
 
-def delete_wazo_user(wazo_user_id: uuid, admin_token: str): # delete_wazo_user
+def delete_wazo_user(wazo_user_id: uuid, admin_token: str):
     wazo_api_url = WAZO_API_URL
     url = f"{wazo_api_url}/api/auth/0.1/users/{wazo_user_id}"
     headers = {
@@ -84,13 +81,13 @@ def delete_wazo_user(wazo_user_id: uuid, admin_token: str): # delete_wazo_user
             url, 
             headers=headers, 
             verify=False
-        )  
+        )  # adjust verify as needed
         if response.status_code == 204:
             # 204 No Content means successful deletion
             return True
         else:
-            logger.info(f"Failed to delete Wazo user: {response.status_code} - {response.text}")
+            logger.error(f"Failed to delete Wazo user: {response.status_code} - {response.text}")
             return False
     except requests.RequestException as e:
-        logger.info(f"Error calling Wazo API to delete user: {e}")
+        logger.error(f"Error calling Wazo API to delete user: {e}")
         return False
