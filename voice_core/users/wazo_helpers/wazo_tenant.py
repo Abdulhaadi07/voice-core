@@ -54,6 +54,6 @@ def create_wazo_tenant(tenant_name: str, admin_token: str) -> str: # return tena
         else:
             logger.info(f"Error {response.status_code}: {response.text}")
             return None
-    except requests.RequestException as e:
-        logger.info("Request failed:", e)
+    except Exception as e:
+        logger.info(f"Request failed: {e}")
         return None

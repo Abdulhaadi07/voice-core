@@ -39,10 +39,12 @@ class UserManager(DjangoUserManager["User"]):
             # Step 1: Create Cognito user
             cognito_start_time = datetime.now()
             cognito_sub = create_cognito_user(email, password, extra_fields.get("name", ""))
+
             if not cognito_sub:
                 logger.error(f"Fail to create user at cognito")
                 raise raise_custom_drf_exception(503,"Failed to create Cognito user")
-            
+
+            logger.info(f"User creation step 1 complete: Cognito user created with sub ID {cognito_sub}")
             extra_fields["cognito_sub"] = cognito_sub
             cognito_end_time = datetime.now()
 
@@ -55,7 +57,7 @@ class UserManager(DjangoUserManager["User"]):
             user.refresh_from_db()
             djangoDb_user_save_end_time = datetime.now()
 
-
+            logger.info(f"User creation step 2 complete: DjangoDb user created with user ID {user.pk}")
 
             # Step 3: Create Wazo User
             # Step 3.1: Get Wazo admin token
@@ -66,6 +68,8 @@ class UserManager(DjangoUserManager["User"]):
                 self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to get Wazo admin token")
             
+            logger.info(f"User creation step 3.1 complete: admin_token {admin_token}")
+
             # Step 3.2: Get tenant UUID
             tenant_uuid = get_wazo_tenant_uuid(tenant, admin_token)
             if not tenant_uuid:
@@ -74,6 +78,8 @@ class UserManager(DjangoUserManager["User"]):
                 self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to get Wazo tenant UUID")
             
+            logger.info(f"User creation step 3.2 complete: tenant_uuid {tenant_uuid}")
+
             # Step 3.3: Create Wazo user
             [wazo_user_id, wazo_username] = create_wazo_user(user, admin_token, tenant_uuid)
             if not wazo_user_id:
@@ -82,7 +88,9 @@ class UserManager(DjangoUserManager["User"]):
                 self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to create Wazo user")
             
-            # Step 3.4: Save all Wazo information
+            logger.info(f"User creation step 3.3 complete: wazo_user_id {wazo_user_id}")
+
+            # Step 4: Update User with Wazo information
             try:
                 # Save user Wazo information
                 user.wazo_user_id = wazo_user_id
@@ -123,7 +131,7 @@ class UserManager(DjangoUserManager["User"]):
             # If any other error occurs, rollback everything
             self._rollback_on_failure(email, cognito_sub, user)
             logger.exception("Failed to create user")
-            raise raise_custom_drf_exception(503,f"Failed to create user: {str(e)}")
+            raise raise_custom_drf_exception(503,f"Failed to create New user: {str(e)}")
 
     def _rollback_on_failure(self, email: str, cognito_sub: str | None, user=None, wazo_user_uuid: str | None = None, admin_token: str | None = None):
         """Rollback method to delete user from all systems on failure."""

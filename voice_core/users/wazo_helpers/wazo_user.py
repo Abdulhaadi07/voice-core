@@ -45,9 +45,9 @@ def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, st
         else:
             logger.error(f"Fail to create wazo user! {response.status_code} {response.text}")
             return None
-    except requests.RequestException as e:
+    except Exception as e:
         logger.error("Error calling Wazo API to create user:", e)
-        raise
+        raise Exception(str(e)) 
 
 
 def generate_valid_password(length=12):
@@ -88,6 +88,6 @@ def delete_wazo_user(wazo_user_id: uuid, admin_token: str):
         else:
             logger.error(f"Failed to delete Wazo user: {response.status_code} - {response.text}")
             return False
-    except requests.RequestException as e:
+    except Exception as e:
         logger.error(f"Error calling Wazo API to delete user: {e}")
         return False
