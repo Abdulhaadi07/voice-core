@@ -6,8 +6,6 @@ from django.core.mail import get_connection, EmailMultiAlternatives
 from django.conf import settings
 from celery import shared_task
 
-from voice_core.utils.writeToFile import append_message_to_file
-
 logger = logging.getLogger(__name__)
 
 @shared_task()
@@ -43,7 +41,6 @@ def send_email_task(
             )
             return False
         passr = getattr(settings, "EMAIL_HOST_PASSWORD", None)
-        append_message_to_file('EMAIL_HOST_PASSWORD', passr)
         # Explicit SMTP connection (use settings)
         connection = get_connection(
             backend=getattr(settings, "EMAIL_BACKEND", None),
