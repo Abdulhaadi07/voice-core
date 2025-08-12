@@ -11,7 +11,7 @@ from voice_core.users.wazo_helpers.wazo_user import create_wazo_user, delete_waz
 from voice_core.users.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.users.utils import resolve_tenant_from_email
 from voice_core.custom_error_exception import raise_custom_drf_exception
-
+from voice_core.utils.mail import send_welcome_msg
 if TYPE_CHECKING:
     from .models import User  # noqa: F401
 
@@ -34,7 +34,7 @@ class UserManager(DjangoUserManager["User"]):
         
         cognito_sub = None
         user = None
-        
+
         try:
             # Step 1: Create Cognito user
             cognito_start_time = datetime.now()
@@ -46,6 +46,8 @@ class UserManager(DjangoUserManager["User"]):
             extra_fields["cognito_sub"] = cognito_sub
             cognito_end_time = datetime.now()
 
+
+
             # Step 2: Save user to Django DB
             user = self.model(email=email, **extra_fields)
             user.password = make_password(password)
@@ -53,7 +55,10 @@ class UserManager(DjangoUserManager["User"]):
             user.refresh_from_db()
             djangoDb_user_save_end_time = datetime.now()
 
-            # Step 3: Get Wazo admin token
+
+
+            # Step 3: Create Wazo User
+            # Step 3.1: Get Wazo admin token
             admin_token = get_wazo_admin_token()
             if not admin_token:
                 # If admin token fails, delete user from DB and Cognito
@@ -61,7 +66,7 @@ class UserManager(DjangoUserManager["User"]):
                 self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to get Wazo admin token")
             
-            # Step 4: Get tenant UUID
+            # Step 3.2: Get tenant UUID
             tenant_uuid = get_wazo_tenant_uuid(tenant, admin_token)
             if not tenant_uuid:
                 # If tenant UUID fails, delete user from DB and Cognito
@@ -69,7 +74,7 @@ class UserManager(DjangoUserManager["User"]):
                 self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to get Wazo tenant UUID")
             
-            # Step 5: Create Wazo user
+            # Step 3.3: Create Wazo user
             [wazo_user_id, wazo_username] = create_wazo_user(user, admin_token, tenant_uuid)
             if not wazo_user_id:
                 # If Wazo user creation fails, delete user from DB and Cognito
@@ -77,7 +82,7 @@ class UserManager(DjangoUserManager["User"]):
                 self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to create Wazo user")
             
-            # Step 6: Save all Wazo information
+            # Step 3.4: Save all Wazo information
             try:
                 # Save user Wazo information
                 user.wazo_user_id = wazo_user_id
@@ -93,6 +98,9 @@ class UserManager(DjangoUserManager["User"]):
                 db_duration = (djangoDb_user_save_end_time - cognito_end_time).total_seconds()
                 wazo_duration = (wazo_user_create_end_time - djangoDb_user_save_end_time).total_seconds()
                 total_duration = (wazo_user_create_end_time - cognito_start_time).total_seconds()
+
+                # Send welcome email asynchronously
+                send_welcome_msg(user.name,user.email)
 
                 logger.info(
                     f"User created successfully: {email} (Cognito sub: {cognito_sub}) | "
