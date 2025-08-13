@@ -28,7 +28,8 @@ def send_email_task(
     bcc: Optional[Sequence[str]] = None,
     reply_to: Optional[Sequence[str]] = None,
 ) -> bool:
-    try:
+    try:   
+        logger.info(f"Sending Welcome mail to  {recipient_list}")
         # Fallback to default sender from settings
         if not from_email:
             from_email = (
@@ -41,7 +42,7 @@ def send_email_task(
                 "No DEFAULT_FROM_EMAIL or EMAIL_HOST_USER configured; cannot send email."
             )
             return False
-        passr = getattr(settings, "EMAIL_HOST_PASSWORD", None)
+        # passr = getattr(settings, "EMAIL_HOST_PASSWORD", None)
         # Explicit SMTP connection (use settings)
         connection = get_connection(
             backend=getattr(settings, "EMAIL_BACKEND", None),
@@ -52,7 +53,9 @@ def send_email_task(
             use_tls=getattr(settings, "EMAIL_USE_TLS", False),
             use_ssl=getattr(settings, "EMAIL_USE_SSL", False),
             timeout=getattr(settings, "EMAIL_TIMEOUT", 5),
-        )
+        )   
+
+        logger.info(f"Sending Email from {connection.username}")
 
         email = EmailMultiAlternatives(
             subject=subject,
@@ -91,16 +94,17 @@ def send_email_task(
             getattr(exc, "smtp_code", "unknown"),
             exc_info=True
         )
+        logger.debug(f"DEBUG: In SMTPAuthError - retries: {self.request.retries}, max_retries: {self.max_retries}")
         if self.request.retries < self.max_retries:
             logger.info(f"Retrying email task (attempt {self.request.retries + 1})")
             raise self.retry(countdown=60 * (2 ** self.request.retries), exc=exc)
         logger.error(f"Email task failed after {self.max_retries} retries")
-        return False
+        raise  
 
     except Exception as exc:
         logger.error(f"Failed to send email to {recipient_list}", exc_info=True)
-        if self.request.retries < self.max_retries:
+        if getattr(self, "request", None) and self.request.retries < self.max_retries:
             logger.info(f"Retrying email task (attempt {self.request.retries + 1})")
             raise self.retry(countdown=60 * (2 ** self.request.retries), exc=exc)
         logger.error(f"Email task failed after {self.max_retries} retries")
-        return False
+        raise exc

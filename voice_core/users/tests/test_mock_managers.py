@@ -33,10 +33,6 @@ class MockUser:
     
     _meta = MagicMock()
   
-
-# logging.disable(logging.CRITICAL)
-
-# Define a mock for the custom exception helper
 def raise_custom_drf_exception(status_code, detail):
     """Mock a custom DRF exception for testing."""
     return APIException(detail=detail, code=status_code)
@@ -46,9 +42,8 @@ class UserManagerTests(TestCase):
     """Test suite for the custom UserManager."""
 
     def setUp(self):
-        # Create a real UserManager instance to be tested
         self.user_manager = UserManager()
-        self.user_manager.model = MockUser # Assign the mock model
+        self.user_manager.model = MockUser 
         self.user_data = {
             "email": "testuser@example.com",
             "password": "testpassword123",
@@ -72,7 +67,6 @@ class UserManagerTests(TestCase):
                                  mock_create_cognito_user):
         """Test the full user creation path with all services succeeding."""
         
-        # Mock successful return values for all services
         mock_create_cognito_user.return_value = "mock_cognito_sub_123"
         mock_get_wazo_admin_token.return_value = "mock_admin_token"
         mock_get_wazo_tenant_uuid.return_value = "mock_tenant_uuid"
@@ -80,14 +74,12 @@ class UserManagerTests(TestCase):
 
         user = self.user_manager._create_user(**self.user_data)
         
-        # Assert that all service functions were called once with the correct arguments
         mock_create_cognito_user.assert_called_once_with(self.user_data['email'], self.user_data['password'], self.user_data['name'])
         mock_get_wazo_admin_token.assert_called_once()
         mock_get_wazo_tenant_uuid.assert_called_once_with(self.user_data['tenant'], "mock_admin_token")
         mock_create_wazo_user.assert_called_once_with(mock.ANY, "mock_admin_token", "mock_tenant_uuid")
         mock_send_welcome_msg.assert_called_once()
         
-        # Assert that the user object has the correct mock attributes saved
         self.assertEqual(user.email, self.user_data['email'])
         self.assertEqual(user.cognito_sub, "mock_cognito_sub_123")
         self.assertEqual(user.wazo_user_id, "mock_wazo_user_id")
@@ -176,7 +168,6 @@ class UserManagerTests(TestCase):
             admin_token="mock_admin_token"
         )
         
-        # Assert that the delete methods were called for all services
         mock_user.delete.assert_called_once()
         mock_delete_cognito_user.assert_called_once_with("testuser@example.com")
         mock_delete_wazo_user.assert_called_once_with("mock_wazo_id", "mock_admin_token")
@@ -196,7 +187,6 @@ class UserManagerTests(TestCase):
         with patch.object(self.user_manager, '_create_user', return_value=mock_user) as mock_create_user:
             self.user_manager.create_superuser(**self.user_data)
             
-            # Check that _create_user was called with the correct extra fields
             mock_create_user.assert_called_once()
             call_args, call_kwargs = mock_create_user.call_args
             self.assertTrue(call_kwargs['is_staff'])

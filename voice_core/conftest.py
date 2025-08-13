@@ -12,3 +12,8 @@ def _media_storage(settings, tmpdir) -> None:
 @pytest.fixture
 def user(db) -> User:
     return UserFactory()
+
+@pytest.fixture(autouse=True)
+def disable_tz_for_tests(settings):
+    """Disable timezone support for all tests."""
+    settings.USE_TZ = False
