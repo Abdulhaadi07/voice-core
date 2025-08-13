@@ -9,6 +9,52 @@ Voice Core
 
 Moved to [settings](https://cookiecutter-django.readthedocs.io/en/latest/1-getting-started/settings.html).
 
+## Environment / Configuration (`envs/.local/.django`)
+
+Before running the project, configure the following environment variables:
+
+### Database
+```env
+DATABASE_URL=<your_database_url>
+```
+
+### AWS credentials
+```env
+AWS_PROFILE=<your_aws_profile>
+AWS_DEFAULT_REGION=<your_aws_region>
+AWS_SHARED_CREDENTIALS_FILE=<path_to_credentials_file>
+```
+
+### Cognito credentials
+```env
+COGNITO_USER_POOL_ID=<your_user_pool_id>
+COGNITO_APP_CLIENT_ID=<your_app_client_id>
+COGNITO_APP_CLIENT_SECRET=<your_app_client_secret>
+```
+
+### Wazo Credentials
+These are needed for user provisioning in Wazo:
+```env
+WAZO_ADMIN_USER=<admin_username>
+WAZO_ADMIN_PASSWORD=<admin_password>
+WAZO_API_URL=https://<wazo-server-url>
+```
+
+### Email credentials
+
+```env
+EMAIL_HOST=<smtp_host>
+EMAIL_PORT=<smtp_port>
+EMAIL_USE_TLS=<True_or_False>
+EMAIL_USE_SSL=<True_or_False>
+EMAIL_HOST_USER=<your_email>
+EMAIL_HOST_PASSWORD=<your_email_password>
+DEFAULT_FROM_EMAIL=<default_from_email>
+EMAIL_TIMEOUT=<timeout_in_seconds>
+DJANGO_EMAIL_BACKEND=<django_email_backend>
+EMAIL_REPLY_TO=<reply_to_email>
+```
+
 ## Basic Commands
 
 ### Setting Up Your Users
@@ -77,3 +123,5 @@ The following details how to deploy this application.
 ### Docker
 
 See detailed [cookiecutter-django Docker documentation](https://cookiecutter-django.readthedocs.io/en/latest/3-deployment/deployment-with-docker.html).
+
+
