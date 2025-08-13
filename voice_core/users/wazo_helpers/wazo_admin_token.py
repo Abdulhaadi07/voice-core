@@ -40,6 +40,7 @@ def get_cached_wazo_admin_token_from_cache() -> str:
     wazo_cache = caches['wazo_tokens']
     cached_token = wazo_cache.get(WAZO_TOKEN_CACHE_KEY)
     if cached_token:
+        logger.info(f"Returning cached Wazo admin token from Redis")
         logger.debug("Returning cached Wazo admin token from Redis")
         return cached_token
     else:
@@ -76,6 +77,7 @@ def create_wazo_admin_token() -> str:
         if response.status_code == 200:
             data = response.json()
             new_token_uuid = data["data"]["token"]
+            logger.info(f"New Wazo admin token for admin: {new_token_uuid}")
             return new_token_uuid
         else:
             print(f"Error at Wazo.py {response.status_code}: {response.text}")

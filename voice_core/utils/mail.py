@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 def send_welcome_msg(name: str, email: str):
     try:
-
         send_email_task.delay(
             subject="🎉 Welcome to Voice Core!",
             message=(
@@ -18,5 +17,6 @@ def send_welcome_msg(name: str, email: str):
             ),
             recipient_list=[email],
         )
-    except Exception:
-        logger.exception("Failed to enqueue welcome email task")
+        logger.info(f"Welcome email task has been queued for {email}")
+    except Exception as e:
+        logger.error(f"Failed to enqueue welcome email task for {email}: {e}")
