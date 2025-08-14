@@ -39,7 +39,7 @@ class UserManager(DjangoUserManager["User"]):
         try:
             # Step 1: Create Cognito user
             cognito_start_time = datetime.now()
-            cognito_sub = f"test-sub-{cognito_start_time}" # create_cognito_user(email, password, extra_fields.get("name", ""))
+            cognito_sub = create_cognito_user(email, password, extra_fields.get("name", ""))
 
             if not cognito_sub:
                 logger.error(f"Fail to create user at cognito")
