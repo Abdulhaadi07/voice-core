@@ -5,13 +5,14 @@ from voice_core.tenant.models import Tenant
 import requests
 from django.core import serializers
 import uuid
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
-def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> str: # return tenant uuid
+def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> Tuple[str, bool]: # return tenant_uuid, is_created flag
     if(tenant.wazo_tenant_uuid):
         logger.info(f"Get Wazo Tenant ID from db")
-        return tenant.wazo_tenant_uuid
+        return tenant.wazo_tenant_uuid, True
     #create tenant
     tenant_uuid = create_wazo_tenant(tenant.name, admin_token)
     logger.info(f"Created New Wazo tenant: {tenant_uuid}")
@@ -24,7 +25,7 @@ def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> str: # return tena
         logger.info(f"Error saving tenant: {str(e)}")
         raise e 
     
-    return tenant_uuid
+    return tenant_uuid, False
 
 def create_wazo_tenant(tenant_name: str, admin_token: str) -> str: # return tenant uuid
     wazo_api_url = WAZO_API_URL
