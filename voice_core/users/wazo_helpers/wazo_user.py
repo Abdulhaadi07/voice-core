@@ -1,5 +1,5 @@
 import logging
-from config.settings.local import WAZO_API_URL
+from config.settings.base import WAZO_API_URL
 import requests
 import uuid
 import random
