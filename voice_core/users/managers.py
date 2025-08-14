@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from datetime import datetime
 from rest_framework.exceptions import ValidationError, APIException
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import Group
 from django.contrib.auth.models import UserManager as DjangoUserManager
 
 from voice_core.users.registration.cognito import create_cognito_user, delete_cognito_user
@@ -48,8 +49,6 @@ class UserManager(DjangoUserManager["User"]):
             extra_fields["cognito_sub"] = cognito_sub
             cognito_end_time = datetime.now()
 
-
-
             # Step 2: Save user to Django DB
             user = self.model(email=email, **extra_fields)
             user.password = make_password(password)
@@ -71,7 +70,7 @@ class UserManager(DjangoUserManager["User"]):
             logger.info(f"User creation step 3.1 complete: admin_token {admin_token}")
 
             # Step 3.2: Get tenant UUID
-            tenant_uuid = get_wazo_tenant_uuid(tenant, admin_token)
+            tenant_uuid, does_tenant_pre_exist = get_wazo_tenant_uuid(tenant, admin_token)
             if not tenant_uuid:
                 # If tenant UUID fails, delete user from DB and Cognito
                 logger.exception(f"Fail to get wazo tenant UUID")
@@ -79,6 +78,11 @@ class UserManager(DjangoUserManager["User"]):
                 raise raise_custom_drf_exception(503,"Failed to get Wazo tenant UUID")
             
             logger.info(f"User creation step 3.2 complete: tenant_uuid {tenant_uuid}")
+
+            # get_wazo_tenant_uuid returns (uuid, True) if existing, (uuid, False) if newly created
+            assigned_group_name = "admin" if does_tenant_pre_exist is False else "agent"
+            assigned_group = Group.objects.get(name=assigned_group_name)
+            user.groups.add(assigned_group)
 
             # Step 3.3: Create Wazo user
             [wazo_user_id, wazo_username] = create_wazo_user(user, admin_token, tenant_uuid)
