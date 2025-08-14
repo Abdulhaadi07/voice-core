@@ -1,6 +1,6 @@
 import logging
 from django.core.cache import caches
-from config.settings.local import WAZO_API_URL,WAZO_TOKEN_EXPIRATION,WAZO_ADMIN_PASSWORD,WAZO_ADMIN_USERNAME
+from config.settings.base import WAZO_API_URL,WAZO_TOKEN_EXPIRATION,WAZO_ADMIN_PASSWORD,WAZO_ADMIN_USERNAME
 import requests
 from requests.auth import HTTPBasicAuth
 

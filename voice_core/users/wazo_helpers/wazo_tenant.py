@@ -1,6 +1,6 @@
 
 import logging
-from config.settings.local import WAZO_API_URL
+from config.settings.base import WAZO_API_URL
 from voice_core.tenant.models import Tenant
 import requests
 from django.core import serializers
