@@ -70,7 +70,7 @@ class UserManager(DjangoUserManager["User"]):
             logger.info(f"User creation step 3.1 complete: admin_token {admin_token}")
 
             # Step 3.2: Get tenant UUID
-            tenant_uuid, created = get_wazo_tenant_uuid(tenant, admin_token)
+            tenant_uuid, isNewlyCreated = get_wazo_tenant_uuid(tenant, admin_token)
             if not tenant_uuid:
                 # If tenant UUID fails, delete user from DB and Cognito
                 logger.exception(f"Fail to get wazo tenant UUID")
@@ -80,7 +80,7 @@ class UserManager(DjangoUserManager["User"]):
             logger.info(f"User creation step 3.2 complete: tenant_uuid {tenant_uuid}")
 
             # get_wazo_tenant_uuid returns (uuid, True) if existing, (uuid, False) if newly created
-            assigned_group_name = "admin" if created is False else "agent"
+            assigned_group_name = "admin" if isNewlyCreated is False else "agent"
             assigned_group = Group.objects.get(name=assigned_group_name)
             user.groups.add(assigned_group)
 
