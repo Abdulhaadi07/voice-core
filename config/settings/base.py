@@ -226,8 +226,6 @@ EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", 5))
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 EMAIL_REPLY_TO = os.getenv("EMAIL_REPLY_TO", EMAIL_HOST_USER)
 
-
-
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL.
