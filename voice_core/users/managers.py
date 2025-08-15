@@ -70,6 +70,7 @@ class UserManager(DjangoUserManager["User"]):
             logger.info(f"User creation step 3.1 complete: admin_token {admin_token}")
 
             # Step 3.2: Get tenant UUID
+            # get_wazo_tenant_uuid returns (uuid, True) if existing, (uuid, False) if newly created
             tenant_uuid, does_tenant_pre_exist = get_wazo_tenant_uuid(tenant, admin_token)
             if not tenant_uuid:
                 # If tenant UUID fails, delete user from DB and Cognito
@@ -79,12 +80,16 @@ class UserManager(DjangoUserManager["User"]):
             
             logger.info(f"User creation step 3.2 complete: tenant_uuid {tenant_uuid}")
 
-            # get_wazo_tenant_uuid returns (uuid, True) if existing, (uuid, False) if newly created
+            # step 3.3: Assign role
             assigned_group_name = "admin" if does_tenant_pre_exist is False else "agent"
             assigned_group = Group.objects.get(name=assigned_group_name)
             user.groups.add(assigned_group)
+            # Make the user staff ONLY if tenant does not exist
+            if not does_tenant_pre_exist:
+                user.is_staff = True
+            logger.info(f"User creation step 3.3 complete: user role '{assigned_group_name}'")
 
-            # Step 3.3: Create Wazo user
+            # Step 3.4: Create Wazo user
             [wazo_user_id, wazo_username] = create_wazo_user(user, admin_token, tenant_uuid)
             if not wazo_user_id:
                 # If Wazo user creation fails, delete user from DB and Cognito
@@ -92,7 +97,7 @@ class UserManager(DjangoUserManager["User"]):
                 self._rollback_on_failure(email, cognito_sub, user)
                 raise raise_custom_drf_exception(503,"Failed to create Wazo user")
             
-            logger.info(f"User creation step 3.3 complete: wazo_user_id {wazo_user_id}")
+            logger.info(f"User creation step 3.4 complete: wazo_user_id {wazo_user_id}")
 
             # Step 4: Update User with Wazo information
             try:

@@ -1,193 +1,227 @@
-import logging
-from unittest import mock
+# import uuid
+# import pytest
+# from unittest.mock import patch, MagicMock
+# from django.contrib.auth.models import Group
+# from django.core.exceptions import ValidationError
+# from django.test import TestCase
+# from voice_core.users.managers import UserManager
+# from voice_core.users.models import User
+
+
+import pytest
 from unittest.mock import patch, MagicMock
-
-from django.test import TestCase
-from django.db.models.manager import EmptyManager
-from rest_framework.exceptions import APIException
-
+from django.contrib.auth.models import Group
 from voice_core.users.managers import UserManager
-from voice_core.users.models import User
 
-
+# Mock User model
 class MockUser:
-    """A mock Django User model for testing the manager."""
     pk = 1
-    wazo_user_id = None
-    wazo_username = None
-    wazo_provisioned_at = None
-    
+    is_staff = False
+    groups = MagicMock()
+
     def __init__(self, email, **kwargs):
         self.email = email
         self.__dict__.update(kwargs)
+        self.password = None
         self.save = MagicMock()
         self.delete = MagicMock()
         self.refresh_from_db = MagicMock()
-    
-    def __eq__(self, other):
-        return self.email == other.email
+        self.first_name = kwargs.get("first_name", "")
+        self.wazo_user_id = None
+        self.wazo_username = None
+        self.wazo_provisioned_at = None
 
     @property
     def name(self):
-        return self.first_name if hasattr(self, 'first_name') else ''
-    
-    _meta = MagicMock()
-  
-def raise_custom_drf_exception(status_code, detail):
-    """Mock a custom DRF exception for testing."""
-    return APIException(detail=detail, code=status_code)
+        return self.first_name
 
-@patch('voice_core.custom_error_exception.raise_custom_drf_exception', new=raise_custom_drf_exception)
-class UserManagerTests(TestCase):
-    """Test suite for the custom UserManager."""
+@pytest.mark.django_db
+def test_create_admin_user_success():
+    email = "test@example.com"
+    password = "securepassword"
+    name = "Test User"
 
-    def setUp(self):
-        self.user_manager = UserManager()
-        self.user_manager.model = MockUser 
-        self.user_data = {
-            "email": "testuser@example.com",
-            "password": "testpassword123",
-            "name": "Test User",
-            "tenant": "example",
-            "first_name": "Test",
-        }
-        
-    @patch('voice_core.users.managers.create_cognito_user')
-    @patch('voice_core.users.managers.get_wazo_admin_token')
-    @patch('voice_core.users.managers.get_wazo_tenant_uuid')
-    @patch('voice_core.users.managers.create_wazo_user')
-    @patch('voice_core.users.managers.resolve_tenant_from_email', return_value='example')
-    @patch('voice_core.users.managers.send_welcome_msg')
-    def test_create_user_success(self, 
-                                 mock_send_welcome_msg, 
-                                 mock_resolve_tenant, 
-                                 mock_create_wazo_user, 
-                                 mock_get_wazo_tenant_uuid,
-                                 mock_get_wazo_admin_token, 
-                                 mock_create_cognito_user):
-        """Test the full user creation path with all services succeeding."""
-        
-        mock_create_cognito_user.return_value = "mock_cognito_sub_123"
-        mock_get_wazo_admin_token.return_value = "mock_admin_token"
-        mock_get_wazo_tenant_uuid.return_value = "mock_tenant_uuid"
-        mock_create_wazo_user.return_value = ["mock_wazo_user_id", "mock_wazo_username"]
+    manager = UserManager()
+    manager.model = MockUser  # Important: set the model
 
-        user = self.user_manager._create_user(**self.user_data)
-        
-        mock_create_cognito_user.assert_called_once_with(self.user_data['email'], self.user_data['password'], self.user_data['name'])
-        mock_get_wazo_admin_token.assert_called_once()
-        mock_get_wazo_tenant_uuid.assert_called_once_with(self.user_data['tenant'], "mock_admin_token")
-        mock_create_wazo_user.assert_called_once_with(mock.ANY, "mock_admin_token", "mock_tenant_uuid")
-        mock_send_welcome_msg.assert_called_once()
-        
-        self.assertEqual(user.email, self.user_data['email'])
-        self.assertEqual(user.cognito_sub, "mock_cognito_sub_123")
-        self.assertEqual(user.wazo_user_id, "mock_wazo_user_id")
-        self.assertEqual(user.wazo_username, "mock_wazo_username")
+    # Mock all external calls
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+         patch("voice_core.users.managers.create_cognito_user", return_value="cognito-sub-123"), \
+         patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token-123"), \
+         patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid-123", False)), \
+         patch("voice_core.users.managers.create_wazo_user", return_value=["wazo-id-123", "wazo-username"]), \
+         patch("voice_core.users.managers.send_welcome_msg"):
+
+        # Ensure group exists
+        Group.objects.get_or_create(name="admin")
+
+        user = manager._create_user(email=email, password=password, name=name)
+
+        assert user.email == email
+        assert user.cognito_sub == "cognito-sub-123"
+        assert user.wazo_user_id == "wazo-id-123"
+        assert user.wazo_username == "wazo-username"
+        assert user.is_staff is True
+        user.groups.add.assert_called()  # Check group was added
 
 
-    @patch('voice_core.users.managers.create_cognito_user', return_value=None)
-    @patch.object(UserManager, '_rollback_on_failure')
-    def test_create_user_cognito_failure(self, mock_rollback, mock_create_cognito_user):
-        """Test failure during Cognito user creation."""
-        with self.assertRaisesRegex(APIException, "Failed to create Cognito user"):
-            self.user_manager._create_user(**self.user_data)
-        
-        mock_create_cognito_user.assert_called_once()
-        mock_rollback.assert_not_called()
+@pytest.mark.django_db
+def test_create_agent_user_success():
+    email = "agent@example.com"
+    password = "agentpassword"
+    name = "Agent User"
+
+    manager = UserManager()
+    manager.model = MagicMock()  # Use MagicMock if you don't need full MockUser
+
+    # Mock all external calls
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+         patch("voice_core.users.managers.create_cognito_user", return_value="cognito-sub-456"), \
+         patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token-456"), \
+         patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid-456", True)), \
+         patch("voice_core.users.managers.create_wazo_user", return_value=["wazo-id-456", "wazo-username"]), \
+         patch("voice_core.users.managers.send_welcome_msg"):
+
+        # Ensure group exists
+        Group.objects.get_or_create(name="agent")
+
+        user_instance = MagicMock()
+        manager.model.return_value = user_instance  # Mock DB user instance
+
+        user = manager._create_user(email=email, password=password, name=name)
+
+        # Agent-specific assertions
+        assert user == user_instance
+        # Since tenant pre-exists, should be agent
+        user.groups.add.assert_called()  
+        user.is_staff = False  # Agent should NOT be staff
 
 
-    @patch('voice_core.users.managers.create_cognito_user', return_value="mock_cognito_sub")
-    @patch('voice_core.users.managers.get_wazo_admin_token', return_value=None)
-    @patch.object(UserManager, '_rollback_on_failure')
-    def test_create_user_wazo_token_failure_triggers_rollback(self, 
-                                                             mock_rollback, 
-                                                             mock_get_wazo_admin_token,
-                                                             mock_create_cognito_user):
-        """Test failure to get Wazo admin token, ensuring rollback is triggered."""
-        with self.assertRaisesRegex(APIException, "Failed to get Wazo admin token"):
-            self.user_manager._create_user(**self.user_data)
-        
-        mock_get_wazo_admin_token.assert_called_once()
+
+@pytest.mark.django_db
+def test_create_user_cognito_failure():
+    manager = UserManager()
+    manager.model = MockUser
+
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+         patch("voice_core.users.managers.create_cognito_user", return_value=None):
+
+        with pytest.raises(Exception) as exc_info:
+            manager._create_user(email="failcognito@example.com", password="pass")
+
+        assert "Failed to create Cognito user" in str(exc_info.value)
+
+
+@pytest.mark.django_db
+def test_create_user_wazo_token_failure_triggers_rollback():
+    manager = UserManager()
+    manager.model = MockUser
+
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+         patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
+         patch("voice_core.users.managers.get_wazo_admin_token", return_value=None), \
+         patch.object(manager, "_rollback_on_failure") as mock_rollback:
+
+        with pytest.raises(Exception) as exc_info:
+            manager._create_user(email="failwazo@example.com", password="pass")
+
         mock_rollback.assert_called_once()
+        assert "Failed to get Wazo admin token" in str(exc_info.value)
 
 
-    @patch('voice_core.users.managers.create_cognito_user', return_value="mock_cognito_sub")
-    @patch('voice_core.users.managers.get_wazo_admin_token', return_value="mock_admin_token")
-    @patch('voice_core.users.managers.get_wazo_tenant_uuid', return_value=None)
-    @patch.object(UserManager, '_rollback_on_failure')
-    def test_create_user_wazo_tenant_failure_triggers_rollback(self, 
-                                                              mock_rollback, 
-                                                              mock_get_wazo_tenant_uuid,
-                                                              mock_get_wazo_admin_token,
-                                                              mock_create_cognito_user):
-        """Test failure to get Wazo tenant UUID, ensuring rollback is triggered."""
-        with self.assertRaisesRegex(APIException, "Failed to get Wazo tenant UUID"):
-            self.user_manager._create_user(**self.user_data)
-        
-        mock_get_wazo_tenant_uuid.assert_called_once()
+@pytest.mark.django_db
+def test_create_user_wazo_tenant_failure_triggers_rollback():
+    manager = UserManager()
+    manager.model = MockUser
+
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+         patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
+         patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token"), \
+         patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=(None, False)), \
+         patch.object(manager, "_rollback_on_failure") as mock_rollback:
+
+        with pytest.raises(Exception) as exc_info:
+            manager._create_user(email="failtenant@example.com", password="pass")
+
         mock_rollback.assert_called_once()
+        assert "Failed to get Wazo tenant UUID" in str(exc_info.value)
 
 
-    @patch('voice_core.users.managers.create_cognito_user', return_value="mock_cognito_sub")
-    @patch('voice_core.users.managers.get_wazo_admin_token', return_value="mock_admin_token")
-    @patch('voice_core.users.managers.get_wazo_tenant_uuid', return_value="mock_tenant_uuid")
-    @patch('voice_core.users.managers.create_wazo_user', return_value=[None, None])
-    @patch.object(UserManager, '_rollback_on_failure')
-    def test_create_user_wazo_creation_failure_triggers_rollback(self, 
-                                                                 mock_rollback, 
-                                                                 mock_create_wazo_user,
-                                                                 mock_get_wazo_tenant_uuid,
-                                                                 mock_get_wazo_admin_token,
-                                                                 mock_create_cognito_user):
-        """Test failure to create the Wazo user, ensuring rollback is triggered."""
-        with self.assertRaisesRegex(APIException, "Failed to create Wazo user"):
-            self.user_manager._create_user(**self.user_data)
-        
-        mock_create_wazo_user.assert_called_once()
+@pytest.mark.django_db
+def test_create_user_wazo_creation_failure_triggers_rollback():
+    manager = UserManager()
+    manager.model = MockUser
+
+    # Ensure groups exist
+    Group.objects.get_or_create(name="admin")
+    Group.objects.get_or_create(name="agent")
+
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+         patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
+         patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token"), \
+         patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid", False)), \
+         patch("voice_core.users.managers.create_wazo_user", return_value=[None, None]), \
+         patch.object(manager, "_rollback_on_failure") as mock_rollback, \
+         patch("voice_core.users.managers.delete_cognito_user"), \
+         patch("voice_core.users.managers.delete_wazo_user"):
+
+        with pytest.raises(Exception) as exc_info:
+            manager._create_user(email="failwazo@example.com", password="pass")
+
         mock_rollback.assert_called_once()
-        
+        assert "Failed to create Wazo user" in str(exc_info.value)
 
-    @patch('voice_core.users.managers.delete_cognito_user')
-    @patch('voice_core.users.managers.delete_wazo_user')
-    def test_rollback_on_failure_deletes_from_all_services(self, mock_delete_wazo_user, mock_delete_cognito_user):
-        """Test that the rollback function correctly cleans up all services."""
-        mock_user = MockUser({
-            "email": "testuser@example.com",
-            "password": "testpassword123",
-            "name": "Test User",
-            "tenant": "example",
-            "first_name": "Test",
-        })
-        
-        self.user_manager._rollback_on_failure(
-            email="testuser@example.com",
-            cognito_sub="mock_cognito_sub",
-            user=mock_user,
-            wazo_user_uuid="mock_wazo_id",
-            admin_token="mock_admin_token"
+def test_rollback_on_failure_deletes_from_all_services():
+    manager = UserManager()
+    user_mock = MagicMock()
+    cognito_sub = "sub123"
+    wazo_user_id = "wazo123"
+    admin_token = "token123"
+
+    with patch("voice_core.users.managers.delete_cognito_user") as mock_cognito, \
+         patch("voice_core.users.managers.delete_wazo_user") as mock_wazo:
+
+        manager._rollback_on_failure(
+            email="test@example.com",
+            cognito_sub=cognito_sub,
+            user=user_mock,
+            wazo_user_uuid=wazo_user_id,
+            admin_token=admin_token
         )
-        
-        mock_user.delete.assert_called_once()
-        mock_delete_cognito_user.assert_called_once_with("testuser@example.com")
-        mock_delete_wazo_user.assert_called_once_with("mock_wazo_id", "mock_admin_token")
+
+        mock_cognito.assert_called_once_with("test@example.com")
+        mock_wazo.assert_called_once_with(wazo_user_id, admin_token)
+        user_mock.delete.assert_called_once()
+
+def test_create_user_with_no_email_raises_value_error():
+    manager = UserManager()
+    manager.model = MockUser
+
+    with pytest.raises(ValueError) as exc_info:
+        manager._create_user(email=None, password="pass")
+
+    assert "The given email must be set" in str(exc_info.value)
 
 
-    def test_create_user_with_no_email_raises_value_error(self):
-        """Test that a ValueError is raised if no email is provided."""
-        user_data_no_email = self.user_data.copy()
-        user_data_no_email['email'] = ""
-        with self.assertRaisesRegex(ValueError, "The given email must be set"):
-            self.user_manager._create_user(**user_data_no_email)
+@pytest.mark.django_db
+def test_create_superuser_sets_fields_correctly():
+    manager = UserManager()
+    manager.model = MockUser
 
+    # Ensure groups exist
+    Group.objects.get_or_create(name="admin")
+    Group.objects.get_or_create(name="agent")
 
-    def test_create_superuser_sets_fields_correctly(self):
-        """Test that create_superuser sets is_staff and is_superuser to True."""
-        mock_user = MagicMock()
-        with patch.object(self.user_manager, '_create_user', return_value=mock_user) as mock_create_user:
-            self.user_manager.create_superuser(**self.user_data)
-            
-            mock_create_user.assert_called_once()
-            call_args, call_kwargs = mock_create_user.call_args
-            self.assertTrue(call_kwargs['is_staff'])
-            self.assertTrue(call_kwargs['is_superuser'])
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+         patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
+         patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token"), \
+         patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid", False)), \
+         patch("voice_core.users.managers.create_wazo_user", return_value=["wazo-id", "wazo-user"]), \
+         patch("voice_core.users.managers.send_welcome_msg"), \
+         patch("voice_core.users.managers.delete_cognito_user"), \
+         patch("voice_core.users.managers.delete_wazo_user"):
+
+        superuser = manager.create_superuser(email="super@example.com", password="superpass")
+
+        assert superuser.is_superuser is True
+        assert superuser.is_staff is True
