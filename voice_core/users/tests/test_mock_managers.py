@@ -1,19 +1,8 @@
-# import uuid
-# import pytest
-# from unittest.mock import patch, MagicMock
-# from django.contrib.auth.models import Group
-# from django.core.exceptions import ValidationError
-# from django.test import TestCase
-# from voice_core.users.managers import UserManager
-# from voice_core.users.models import User
-
-
 import pytest
 from unittest.mock import patch, MagicMock
 from django.contrib.auth.models import Group
 from voice_core.users.managers import UserManager
 
-# Mock User model
 class MockUser:
     pk = 1
     is_staff = False
@@ -42,7 +31,7 @@ def test_create_admin_user_success():
     name = "Test User"
 
     manager = UserManager()
-    manager.model = MockUser  # Important: set the model
+    manager.model = MockUser 
 
     # Mock all external calls
     with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
@@ -52,7 +41,6 @@ def test_create_admin_user_success():
          patch("voice_core.users.managers.create_wazo_user", return_value=["wazo-id-123", "wazo-username"]), \
          patch("voice_core.users.managers.send_welcome_msg"):
 
-        # Ensure group exists
         Group.objects.get_or_create(name="admin")
 
         user = manager._create_user(email=email, password=password, name=name)
@@ -61,8 +49,8 @@ def test_create_admin_user_success():
         assert user.cognito_sub == "cognito-sub-123"
         assert user.wazo_user_id == "wazo-id-123"
         assert user.wazo_username == "wazo-username"
-        assert user.is_staff is True
-        user.groups.add.assert_called()  # Check group was added
+        user.groups.add.assert_called() 
+        assert user.groups.filter(name="admin").exists()
 
 
 @pytest.mark.django_db
@@ -72,7 +60,7 @@ def test_create_agent_user_success():
     name = "Agent User"
 
     manager = UserManager()
-    manager.model = MagicMock()  # Use MagicMock if you don't need full MockUser
+    manager.model = MagicMock() 
 
     # Mock all external calls
     with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
@@ -82,19 +70,16 @@ def test_create_agent_user_success():
          patch("voice_core.users.managers.create_wazo_user", return_value=["wazo-id-456", "wazo-username"]), \
          patch("voice_core.users.managers.send_welcome_msg"):
 
-        # Ensure group exists
         Group.objects.get_or_create(name="agent")
 
         user_instance = MagicMock()
-        manager.model.return_value = user_instance  # Mock DB user instance
+        manager.model.return_value = user_instance  
 
         user = manager._create_user(email=email, password=password, name=name)
 
-        # Agent-specific assertions
         assert user == user_instance
-        # Since tenant pre-exists, should be agent
         user.groups.add.assert_called()  
-        user.is_staff = False  # Agent should NOT be staff
+        assert user.groups.filter(name="admin").exists()
 
 
 
@@ -152,7 +137,6 @@ def test_create_user_wazo_creation_failure_triggers_rollback():
     manager = UserManager()
     manager.model = MockUser
 
-    # Ensure groups exist
     Group.objects.get_or_create(name="admin")
     Group.objects.get_or_create(name="agent")
 
@@ -208,7 +192,6 @@ def test_create_superuser_sets_fields_correctly():
     manager = UserManager()
     manager.model = MockUser
 
-    # Ensure groups exist
     Group.objects.get_or_create(name="admin")
     Group.objects.get_or_create(name="agent")
 

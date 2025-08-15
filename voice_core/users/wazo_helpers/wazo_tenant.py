@@ -9,7 +9,7 @@ from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
-def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> Tuple[str, bool]: # return tenant_uuid, is_created flag
+def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> Tuple[str, bool]: # return tenant_uuid, does_tenant_pre_exist flag
     if(tenant.wazo_tenant_uuid):
         logger.info(f"Get Wazo Tenant ID from db")
         return tenant.wazo_tenant_uuid, True

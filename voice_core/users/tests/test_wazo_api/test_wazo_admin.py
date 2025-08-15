@@ -42,7 +42,6 @@ def test_create_wazo_admin_token_success(mock_requests_post):
     token = create_wazo_admin_token()
     assert token == "new-token-456"
     mock_requests_post.assert_called_once()
-    # You can assert url, auth, etc if you want
 
 def test_create_wazo_admin_token_failure_status(mock_requests_post):
     mock_response = MagicMock()
