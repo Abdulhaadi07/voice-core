@@ -84,9 +84,6 @@ class UserManager(DjangoUserManager["User"]):
             assigned_group_name = "admin" if does_tenant_pre_exist is False else "agent"
             assigned_group = Group.objects.get(name=assigned_group_name)
             user.groups.add(assigned_group)
-            # Make the user staff ONLY if tenant does not exist
-            if not does_tenant_pre_exist:
-                user.is_staff = True
             logger.info(f"User creation step 3.3 complete: user role '{assigned_group_name}'")
 
             # Step 3.4: Create Wazo user

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 # Cache key for Wazo admin token
 WAZO_TOKEN_CACHE_KEY = 'wazo_admin_token'
-_cache_timeout = int(WAZO_TOKEN_EXPIRATION) #getattr(settings, 'WAZO_TOKEN_EXPIRATION', 3600)  # 1 hour default timeout
+_cache_timeout = int(WAZO_TOKEN_EXPIRATION) # default timeout
 
 
 def get_wazo_admin_token() -> str:

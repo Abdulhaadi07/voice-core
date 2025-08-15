@@ -32,7 +32,6 @@ def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, st
             headers=headers,
             verify=False  # skip SSL verification like `curl -k`
         )
-        
         if response.status_code == 200 or response.status_code == 201:
             data = response.json()
             logger.info(f"User created successfully!: {data}")
@@ -53,16 +52,12 @@ def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, st
 def generate_valid_password(length=12):
     if length < 3:
         raise ValueError("Length must be at least 3 to include all required character types.")
-    
-    # Required characters
+
     uppercase = random.choice(string.ascii_uppercase)
     digit = random.choice(string.digits)
     special = random.choice(string.punctuation)
-
-    # Fill the rest with random letters, digits, or punctuation
     others = random.choices(string.ascii_letters + string.digits + string.punctuation, k=length - 3)
 
-    # Combine all characters and shuffle
     password_list = list(uppercase + digit + special + ''.join(others))
     random.shuffle(password_list)
     
@@ -81,9 +76,8 @@ def delete_wazo_user(wazo_user_id: uuid, admin_token: str):
             url, 
             headers=headers, 
             verify=False
-        )  # adjust verify as needed
+        )  
         if response.status_code == 204:
-            # 204 No Content means successful deletion
             return True
         else:
             logger.error(f"Failed to delete Wazo user: {response.status_code} - {response.text}")

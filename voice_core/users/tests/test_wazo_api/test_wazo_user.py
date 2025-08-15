@@ -51,7 +51,6 @@ def test_create_wazo_user_failure_status(mock_post):
 
 @patch("voice_core.users.wazo_helpers.wazo_user.requests.post")
 def test_create_wazo_user_exception(mock_post):
-    # Simulate an exception when calling requests.post
     mock_post.side_effect = Exception("Connection error")
 
     user = DummyUser()
@@ -65,8 +64,8 @@ def test_create_wazo_user_exception(mock_post):
 
 def test_generate_valid_password_length_and_content():
     pwd = generate_valid_password(12)
+    
     assert len(pwd) == 12
-    # Must contain at least one uppercase letter, digit, and special char
     assert any(c.isupper() for c in pwd)
     assert any(c.isdigit() for c in pwd)
     assert any(c in string.punctuation for c in pwd)

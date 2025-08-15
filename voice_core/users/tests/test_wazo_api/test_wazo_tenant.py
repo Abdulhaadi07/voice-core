@@ -7,7 +7,6 @@ import uuid
 
 @pytest.fixture
 def tenant():
-    # Create a simple Tenant instance (not saved to DB)
     return Tenant(name="TestTenant")
 
 
@@ -52,11 +51,10 @@ def test_get_wazo_tenant_uuid_existing_tenant(tenant):
     tenant.wazo_tenant_uuid = existing_uuid
     tenant.save = MagicMock()
 
-    # Patch create_wazo_tenant (should not be called)
+    # Mock create_wazo_tenant
     with patch("voice_core.users.wazo_helpers.wazo_tenant.create_wazo_tenant") as mock_create:
         result_uuid, did_exist = get_wazo_tenant_uuid(tenant, "admin-token-123")
 
-        # Assertions
         assert result_uuid == existing_uuid
         assert did_exist is True
         mock_create.assert_not_called()
@@ -67,11 +65,10 @@ def test_get_wazo_tenant_uuid_new_tenant_success(tenant):
     tenant.wazo_tenant_uuid = None
     tenant.save = MagicMock()
 
-    # Patch create_wazo_tenant so it returns new_uuid
+    # Mock create_wazo_tenant
     with patch("voice_core.users.wazo_helpers.wazo_tenant.create_wazo_tenant", return_value=new_uuid) as mock_create:
         result_uuid, did_exist = get_wazo_tenant_uuid(tenant, "admin-token-123")
 
-        # Assertions
         assert result_uuid == new_uuid
         assert did_exist is False
         tenant.save.assert_called_once_with(update_fields=['wazo_tenant_uuid'])
