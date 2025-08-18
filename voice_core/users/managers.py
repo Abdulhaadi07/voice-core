@@ -80,13 +80,18 @@ class UserManager(DjangoUserManager["User"]):
             
             logger.info(f"User creation step 3.2 complete: tenant_uuid {tenant_uuid}")
 
-            # step 3.3: Assign role
-            assigned_group_name = "admin" if does_tenant_pre_exist is False else "agent"
+            # step 3.3: Assign platform role
+            assigned_group_name = "agent"
             assigned_group = Group.objects.get(name=assigned_group_name)
             user.groups.add(assigned_group)
-            logger.info(f"User creation step 3.3 complete: user role '{assigned_group_name}'")
+            logger.info(f"User creation step 3.3 complete: user platform role '{assigned_group_name}'")
 
-            # Step 3.4: Create Wazo user
+
+            # step 3.4: Assign Tenant Role
+            assigned_tenant_role = "admin" if does_tenant_pre_exist is False else "agent"
+            logger.info(f"User creation step 3.4 complete: user role for this tenant: '{tenant}' is '{assigned_tenant_role}'")
+
+            # Step 3.5: Create Wazo user
             [wazo_user_id, wazo_username] = create_wazo_user(user, admin_token, tenant_uuid)
             if not wazo_user_id:
                 # If Wazo user creation fails, delete user from DB and Cognito
@@ -98,6 +103,8 @@ class UserManager(DjangoUserManager["User"]):
 
             # Step 4: Update User with Wazo information
             try:
+                # Save tenant role
+                user.tenant_role = assigned_tenant_role
                 # Save user Wazo information
                 user.wazo_user_id = wazo_user_id
                 user.wazo_username = wazo_username
