@@ -7,8 +7,9 @@ from voice_core.tenant.api.views import TenantViewSet
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()
 
-router.register("user", UserViewSet)
-router.register("tenants", TenantViewSet)
+router.register(r"user", UserViewSet, basename="user")
+router.register(r"tenants", TenantViewSet, basename="tenant")
+# router.register(r"user-role", RoleViewSet, basename="role")
 
 app_name = "api"
 urlpatterns = router.urls

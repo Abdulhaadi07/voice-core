@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import requests
-from voice_core.users.wazo_helpers.wazo_admin_token import (
+from voice_core.services.wazo_helpers.wazo_admin_token import (
     get_wazo_admin_token,
     get_cached_wazo_admin_token_from_cache,
     create_wazo_admin_token,
@@ -11,14 +11,14 @@ from voice_core.users.wazo_helpers.wazo_admin_token import (
 
 @pytest.fixture
 def mock_cache():
-    with patch("voice_core.users.wazo_helpers.wazo_admin_token.caches") as mock_caches:
+    with patch("voice_core.services.wazo_helpers.wazo_admin_token.caches") as mock_caches:
         mock_cache_instance = MagicMock()
         mock_caches.__getitem__.return_value = mock_cache_instance
         yield mock_cache_instance
 
 @pytest.fixture
 def mock_requests_post():
-    with patch("voice_core.users.wazo_helpers.wazo_admin_token.requests.post") as mock_post:
+    with patch("voice_core.services.wazo_helpers.wazo_admin_token.requests.post") as mock_post:
         yield mock_post
 
 
@@ -70,9 +70,9 @@ def test_clear_wazo_admin_token_cache_calls_cache_delete(mock_cache):
     clear_wazo_admin_token_cache()
     mock_cache.delete.assert_called_once_with("wazo_admin_token")
 
-@patch("voice_core.users.wazo_helpers.wazo_admin_token.get_cached_wazo_admin_token_from_cache")
-@patch("voice_core.users.wazo_helpers.wazo_admin_token.create_wazo_admin_token")
-@patch("voice_core.users.wazo_helpers.wazo_admin_token.set_cached_wazo_admin_token")
+@patch("voice_core.services.wazo_helpers.wazo_admin_token.get_cached_wazo_admin_token_from_cache")
+@patch("voice_core.services.wazo_helpers.wazo_admin_token.create_wazo_admin_token")
+@patch("voice_core.services.wazo_helpers.wazo_admin_token.set_cached_wazo_admin_token")
 def test_get_wazo_admin_token_cache_hit_returns_token(mock_set_cache, mock_create_token, mock_get_cache):
     # Cached token exists
     mock_get_cache.return_value = "cached-token-789"
@@ -81,9 +81,9 @@ def test_get_wazo_admin_token_cache_hit_returns_token(mock_set_cache, mock_creat
     mock_create_token.assert_not_called()
     mock_set_cache.assert_not_called()
 
-@patch("voice_core.users.wazo_helpers.wazo_admin_token.get_cached_wazo_admin_token_from_cache")
-@patch("voice_core.users.wazo_helpers.wazo_admin_token.create_wazo_admin_token")
-@patch("voice_core.users.wazo_helpers.wazo_admin_token.set_cached_wazo_admin_token")
+@patch("voice_core.services.wazo_helpers.wazo_admin_token.get_cached_wazo_admin_token_from_cache")
+@patch("voice_core.services.wazo_helpers.wazo_admin_token.create_wazo_admin_token")
+@patch("voice_core.services.wazo_helpers.wazo_admin_token.set_cached_wazo_admin_token")
 def test_get_wazo_admin_token_cache_miss_creates_and_caches_token(mock_set_cache, mock_create_token, mock_get_cache):
     # No cached token, create new
     mock_get_cache.return_value = None

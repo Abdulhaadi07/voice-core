@@ -1,11 +1,17 @@
-# tenants/views.py
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from voice_core.tenant.models import Tenant
 from .serializers import TenantSerializer
 
+from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
+from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from rest_framework import mixins, viewsets, status
 from rest_framework.response import Response
+from voice_core.permissions import IsSuperUser
+from rest_framework.exceptions import ValidationError
+
+import logging
+logger = logging.getLogger(__name__)
 
 class TenantViewSet(
     mixins.ListModelMixin,
@@ -14,11 +20,69 @@ class TenantViewSet(
 ):  
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
-    permission_classes = [IsAdminUser] #only Admin access to tenant
+    permission_classes = [IsSuperUser] #only SuperAdmin access 
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new Tenant with Wazo API integration
+        and assign the requesting superuser as admin.
+        """
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            tenant = serializer.save()
+
+            logger.info(
+                f"Creating new Tenant | Name: {tenant.name} | Domain: {tenant.domain} | "
+                f"Max Users: {tenant.max_users} | Status: {tenant.status} | "
+                f"Requested by: {request.user.username}"
+            )
+
+            # Check if tenant already exists in Wazo 
+            admin_token = get_wazo_admin_token()
+            tenant_uuid, does_tenant_pre_exist = get_wazo_tenant_uuid(
+                tenant, admin_token
+            )
+            if does_tenant_pre_exist:
+                return Response(
+                    {"detail": f"Tenant '{request.data['name']}' already exists in Wazo."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            # Save Tenant 
+            tenant.wazo_tenant_uuid = tenant_uuid
+            tenant.save(update_fields=["wazo_tenant_uuid"])
+            return Response(self.get_serializer(tenant).data, status=status.HTTP_201_CREATED)
+        except ValidationError as e:
+            logger.error(
+                f"ValidationError creating new Tenant: {e} | "
+                f"Name: {request.data.get('name')} | Domain: {request.data.get('domain')} | "
+                f"Max Users: {request.data.get('max_users')} | "
+                f"Requested by: {request.user.username}"
+            )
+            return Response(e.detail, status=status.HTTP_409_CONFLICT)
 
     def partial_update(self, request, *args, **kwargs):
-        tenant = self.get_object()
-        serializer = self.get_serializer(tenant, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        try:
+            tenant = self.get_object()
+
+            logger.info(
+                f"Updating Tenant (ID: {tenant.id}) | "
+                f"Current: Name='{tenant.name}', Domain='{tenant.domain}', "
+                f"Max Users={tenant.max_users}, Status='{tenant.status}' | "
+                f"Requested by: {request.user.username}"
+            )
+            logger.info(
+                f"Updating Tenant (ID: {tenant.id}) | New values: {request.data}"
+            )
+
+            serializer = self.get_serializer(tenant, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Error updating Tenant {tenant.id if 'tenant' in locals() else 'unknown'}: {e}")
+            return Response(
+                {"detail": "Failed to update tenant."},
+                status=status.HTTP_400_BAD_REQUEST
+            )

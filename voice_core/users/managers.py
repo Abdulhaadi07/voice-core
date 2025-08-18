@@ -7,9 +7,9 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.models import UserManager as DjangoUserManager
 
 from voice_core.users.registration.cognito import create_cognito_user, delete_cognito_user
-from voice_core.users.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
-from voice_core.users.wazo_helpers.wazo_user import create_wazo_user, delete_wazo_user
-from voice_core.users.wazo_helpers.wazo_admin_token import get_wazo_admin_token
+from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
+from voice_core.services.wazo_helpers.wazo_user import create_wazo_user, delete_wazo_user
+from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.users.utils import resolve_tenant_from_email
 from voice_core.custom_error_exception import raise_custom_drf_exception
 from voice_core.utils.mail import send_welcome_msg
