@@ -5,11 +5,10 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from voice_core.permissions import IsSuperUser
 from voice_core.users.models import User
 from voice_core.users.api.serializers.role_serializer import RoleAssignmentSerializer
 from voice_core.users.api.serializers.user_serializer import UserSerializer
@@ -44,7 +43,7 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
         detail=True,
         methods=["post"],
         url_path="assign-role",
-        permission_classes=[IsAuthenticated, IsSuperUser]
+        permission_classes=[IsAuthenticated, IsAdminUser]
     )
     def assign_role(self, request, pk=None): # assign platform role
         user = get_object_or_404(User, pk=pk)
