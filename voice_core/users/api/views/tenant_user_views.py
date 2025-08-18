@@ -8,6 +8,9 @@ from rest_framework import generics, viewsets
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
+from django.contrib.contenttypes.models import ContentType
+
 from voice_core.tenant.models import Tenant
 from voice_core.users.api.serializers.user_serializer import (
     UserCreateSerializer,
@@ -79,6 +82,15 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                     "role": user.tenant_role,
                 },
             )
+            # Admin log for creation
+            LogEntry.objects.log_action(
+                user_id=self.request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(User).pk,
+                object_id=user.pk,
+                object_repr=str(user),
+                action_flag=ADDITION,
+                change_message=f"Created tenant user in tenant {tenant.id}",
+            )
             return user
         except Exception as e:
             logger.error(
@@ -121,6 +133,15 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                     "user_id": updated_user.id,
                     "changes": request.data,
                 },
+            )
+            # Admin log for update
+            LogEntry.objects.log_action(
+                user_id=request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(User).pk,
+                object_id=updated_user.pk,
+                object_repr=str(updated_user),
+                action_flag=CHANGE,
+                change_message=f"Updated tenant user fields: {list(request.data.keys())}",
             )
             return Response(
                 UserDetailSerializer(

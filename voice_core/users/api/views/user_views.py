@@ -9,6 +9,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from django.contrib.admin.models import LogEntry, CHANGE
+from django.contrib.contenttypes.models import ContentType
+
 from voice_core.users.models import User
 from voice_core.users.api.serializers.role_serializer import RoleAssignmentSerializer
 from voice_core.users.api.serializers.user_serializer import UserSerializer
@@ -53,6 +56,15 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
         try:
             serializer.is_valid(raise_exception=True)
             updated_user = serializer.save(user=user)
+            # Django admin log: record role assignment as a change on the User
+            LogEntry.objects.log_action(
+                user_id=request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(User).pk,
+                object_id=updated_user.pk,
+                object_repr=str(updated_user),
+                action_flag=CHANGE,
+                change_message=f"Assigned platform roles: {list(updated_user.groups.values_list('name', flat=True))}",
+            )
             logger.info(f"Role assignment success for user_id={updated_user.id}, roles={list(updated_user.groups.values_list('name', flat=True))}")
         except Exception as exc:
             logger.error(f"Role assignment failed for user_id={user.id}: {exc}")

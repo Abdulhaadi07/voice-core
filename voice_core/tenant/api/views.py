@@ -11,6 +11,8 @@ from voice_core.tenant.api.serializers import TenantSerializer
 
 import logging
 logger = logging.getLogger(__name__)
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
+from django.contrib.contenttypes.models import ContentType
 
 class TenantViewSet(
     mixins.ListModelMixin,
@@ -34,6 +36,14 @@ class TenantViewSet(
                 f"Creating new Tenant | Name: {tenant.name} | Domain: {tenant.domain} | "
                 f"Max Users: {tenant.max_users} | Status: {tenant.status} | "
                 f"Requested by: {request.user.username}"
+            )
+            LogEntry.objects.log_action(
+                user_id=request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(Tenant).pk,
+                object_id=tenant.pk,
+                object_repr=str(tenant),
+                action_flag=ADDITION,
+                change_message="Tenant created via API",
             )
 
             # Check if tenant already exists in Wazo 
@@ -73,6 +83,14 @@ class TenantViewSet(
             )
             logger.info(
                 f"Updating Tenant (ID: {tenant.id}) | New values: {request.data}"
+            )
+            LogEntry.objects.log_action(
+                user_id=request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(Tenant).pk,
+                object_id=tenant.pk,
+                object_repr=str(tenant),
+                action_flag=CHANGE,
+                change_message=f"Tenant updated fields: {list(request.data.keys())}",
             )
 
             serializer = self.get_serializer(tenant, data=request.data, partial=True)
