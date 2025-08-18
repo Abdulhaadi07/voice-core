@@ -1,14 +1,13 @@
-from rest_framework import mixins, viewsets
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from voice_core.tenant.models import Tenant
-from .serializers import TenantSerializer
-
-from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
-from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
-from rest_framework import mixins, viewsets, status
-from rest_framework.response import Response
-from voice_core.permissions import IsSuperUser
+from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
+
+from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
+from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
+from voice_core.tenant.models import Tenant
+from voice_core.tenant.api.serializers import TenantSerializer
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -20,12 +19,11 @@ class TenantViewSet(
 ):  
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
-    permission_classes = [IsSuperUser] #only SuperAdmin access 
+    permission_classes = [IsAdminUser] # only platform admin access 
 
     def create(self, request, *args, **kwargs):
         """
-        Create a new Tenant with Wazo API integration
-        and assign the requesting superuser as admin.
+        Create a new Tenant with Wazo API integration requesting by platform admin.
         """
         try:
             serializer = self.get_serializer(data=request.data)
@@ -44,6 +42,7 @@ class TenantViewSet(
                 tenant, admin_token
             )
             if does_tenant_pre_exist:
+                logger.warning(f"Tenant already exists in Wazo: name={request.data.get('name')}")
                 return Response(
                     {"detail": f"Tenant '{request.data['name']}' already exists in Wazo."},
                     status=status.HTTP_409_CONFLICT,
@@ -51,6 +50,7 @@ class TenantViewSet(
             # Save Tenant 
             tenant.wazo_tenant_uuid = tenant_uuid
             tenant.save(update_fields=["wazo_tenant_uuid"])
+            logger.info(f"Tenant created successfully: id={tenant.id}, name={tenant.name}")
             return Response(self.get_serializer(tenant).data, status=status.HTTP_201_CREATED)
         except ValidationError as e:
             logger.error(

@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from voice_core.tenant.models import Tenant
-from voice_core.users.models import User
 
 
 class TenantSerializer(serializers.ModelSerializer):
+    max_users = serializers.IntegerField(default=50)
     class Meta:
         model = Tenant
         fields = [
