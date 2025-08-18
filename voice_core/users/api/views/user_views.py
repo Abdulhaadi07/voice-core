@@ -1,7 +1,10 @@
+from django.contrib.admin.models import ( 
+    LogEntry, 
+    CHANGE,
+) 
+from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
-
 from drf_spectacular.utils import extend_schema
-
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
@@ -9,13 +12,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from django.contrib.admin.models import LogEntry, CHANGE
-from django.contrib.contenttypes.models import ContentType
-
 from voice_core.users.models import User
 from voice_core.users.api.serializers.role_serializer import RoleAssignmentSerializer
 from voice_core.users.api.serializers.user_serializer import UserSerializer
-
 
 import logging
 logger = logging.getLogger(__name__)

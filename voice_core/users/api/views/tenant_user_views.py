@@ -1,15 +1,16 @@
 from django.contrib.auth import get_user_model
+from django.contrib.admin.models import ( 
+    LogEntry, 
+    ADDITION, 
+    CHANGE,
+)
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-
 from drf_spectacular.utils import extend_schema
-
 from rest_framework import generics, viewsets
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-
-from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
-from django.contrib.contenttypes.models import ContentType
 
 from voice_core.tenant.models import Tenant
 from voice_core.users.api.serializers.user_serializer import (
@@ -82,7 +83,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                     "role": user.tenant_role,
                 },
             )
-            # Admin log for creation
+            # Admin audit log for creation
             LogEntry.objects.log_action(
                 user_id=self.request.user.pk,
                 content_type_id=ContentType.objects.get_for_model(User).pk,

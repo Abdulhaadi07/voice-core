@@ -1,32 +1,34 @@
-import logging
+
 from typing import TYPE_CHECKING
 from datetime import datetime
-from rest_framework.exceptions import ValidationError, APIException
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import UserManager as DjangoUserManager
 
-from voice_core.users.registration.cognito import create_cognito_user, delete_cognito_user
+from rest_framework.exceptions import ValidationError, APIException
+
+from voice_core.users.registration.cognito import (
+    create_cognito_user, 
+    delete_cognito_user,
+)
 from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
-from voice_core.services.wazo_helpers.wazo_user import create_wazo_user, delete_wazo_user
+from voice_core.services.wazo_helpers.wazo_user import (
+    create_wazo_user, delete_wazo_user,
+)
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.users.utils import resolve_tenant_from_email
 from voice_core.custom_error_exception import raise_custom_drf_exception
 from voice_core.utils.mail import send_welcome_msg
+
 if TYPE_CHECKING:
     from .models import User  # noqa: F401
 
+import logging
 logger = logging.getLogger(__name__)
 
 
 class UserManager(DjangoUserManager["User"]):
     """Custom manager for the User model."""
-
-    def _resolve_tenant(self, email: str):
-        return resolve_tenant_from_email(email)
-
-    def _create_cognito(self, email: str, password: str | None, name: str) -> str | None:
-        return create_cognito_user(email, password, name)
 
     def _save_user(self, email: str, password: str | None, **extra_fields):
         user = self.model(email=email, **extra_fields)
@@ -34,12 +36,6 @@ class UserManager(DjangoUserManager["User"]):
         user.save(using=self._db)
         user.refresh_from_db()
         return user
-
-    def _get_wazo_admin_token(self) -> str | None:
-        return get_wazo_admin_token()
-
-    def _get_wazo_tenant_uuid(self, tenant, admin_token: str):
-        return get_wazo_tenant_uuid(tenant, admin_token)
 
     def _assign_platform_role(self, user, group_name: str = "agent"):
         assigned_group = Group.objects.get(name=group_name)
@@ -49,9 +45,6 @@ class UserManager(DjangoUserManager["User"]):
     def _determine_tenant_role(self, does_tenant_pre_exist: bool) -> str:
         return "admin" if does_tenant_pre_exist is False else "agent"
 
-    def _provision_wazo_user(self, user, admin_token: str, tenant_uuid: str):
-        return create_wazo_user(user, admin_token, tenant_uuid)
-
     def _update_user_with_wazo(self, user, tenant_role: str, wazo_user_id: str, wazo_username: str):
         user.tenant_role = tenant_role
         user.wazo_user_id = wazo_user_id
@@ -60,12 +53,9 @@ class UserManager(DjangoUserManager["User"]):
         user.save()
         return user
 
-    def _send_welcome_msg(self, user):
-        send_welcome_msg(user.name, user.email)
-
     def _perform_wazo_actions(self, email: str, cognito_sub: str | None, user, tenant):
         # Step 3.1: Get Wazo admin token
-        admin_token = self._get_wazo_admin_token()
+        admin_token = get_wazo_admin_token()
         if not admin_token:
             logger.exception("Fail to get Wazo admin token")
             self._rollback_on_failure(email, cognito_sub, user)
@@ -74,7 +64,7 @@ class UserManager(DjangoUserManager["User"]):
         logger.info("User creation step 3.1 complete: Wazo admin token obtained")
 
         # Step 3.2: Get tenant UUID
-        tenant_uuid, does_tenant_pre_exist = self._get_wazo_tenant_uuid(tenant, admin_token)
+        tenant_uuid, does_tenant_pre_exist = get_wazo_tenant_uuid(tenant, admin_token)
         if not tenant_uuid:
             logger.exception("Fail to get wazo tenant UUID")
             self._rollback_on_failure(email, cognito_sub, user)
@@ -100,7 +90,7 @@ class UserManager(DjangoUserManager["User"]):
         )
 
         # Step 3.5: Create Wazo user
-        wazo_user_id, wazo_username = self._provision_wazo_user(user, admin_token, tenant_uuid)
+        wazo_user_id, wazo_username = create_wazo_user(user, admin_token, tenant_uuid)
         if not wazo_user_id:
             logger.exception("Fail to create Wazo user")
             self._rollback_on_failure(email, cognito_sub, user)
@@ -118,7 +108,7 @@ class UserManager(DjangoUserManager["User"]):
             raise ValueError("The given email must be set")
         
         # Always resolve tenant from email
-        tenant = self._resolve_tenant(email)
+        tenant = resolve_tenant_from_email(email)
         extra_fields["tenant"] = tenant
         
         cognito_sub = None
@@ -127,7 +117,7 @@ class UserManager(DjangoUserManager["User"]):
         try:
             # Step 1: Create Cognito user
             cognito_start_time = datetime.now()
-            cognito_sub = self._create_cognito(email, password, extra_fields.get("name", ""))
+            cognito_sub = create_cognito_user(email, password, extra_fields.get("name", ""))
 
             if not cognito_sub:
                 logger.error(f"Fail to create user at cognito")
@@ -166,7 +156,7 @@ class UserManager(DjangoUserManager["User"]):
                 total_duration = (wazo_user_create_end_time - cognito_start_time).total_seconds()
 
                 # Send welcome email asynchronously
-                self._send_welcome_msg(user)
+                send_welcome_msg(user.name,user.email)
 
                 logger.info(
                     f"User created successfully: {email} (Cognito sub: {cognito_sub}) | "

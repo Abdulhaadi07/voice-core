@@ -1,3 +1,11 @@
+from django.db.models import Q
+from django.contrib.admin.models import (
+    ADDITION, 
+    CHANGE,
+    LogEntry, 
+)
+from django.contrib.contenttypes.models import ContentType
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser
@@ -8,16 +16,11 @@ from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
 from voice_core.tenant.models import Tenant
 from voice_core.tenant.api.serializers import TenantSerializer
 
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
-
-from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
-from django.contrib.contenttypes.models import ContentType
-
 import logging
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(tags=["Tenant Management"])
 class TenantViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -52,13 +55,15 @@ class TenantViewSet(
                 f"Max Users: {tenant.max_users} | Status: {tenant.status} | "
                 f"Requested by: {request.user.username}"
             )
+
+            # Admin action audit log
             LogEntry.objects.log_action(
                 user_id=request.user.pk,
                 content_type_id=ContentType.objects.get_for_model(Tenant).pk,
                 object_id=tenant.pk,
                 object_repr=str(tenant),
                 action_flag=ADDITION,
-                change_message="Tenant created via API",
+                change_message="Tenant created via Admin API",
             )
 
             # Check if tenant already exists in Wazo 
@@ -99,6 +104,8 @@ class TenantViewSet(
             logger.info(
                 f"Updating Tenant (ID: {tenant.id}) | New values: {request.data}"
             )
+
+            # Admin action audit log
             LogEntry.objects.log_action(
                 user_id=request.user.pk,
                 content_type_id=ContentType.objects.get_for_model(Tenant).pk,
