@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIRequestFactory
 
-from voice_core.users.api.views import UserViewSet
+from voice_core.users.api.views.user_views import UserViewSet
 from voice_core.users.models import User
 
 @pytest.mark.skip(reason="Skipping all admin tests for now")
