@@ -8,11 +8,15 @@ from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
 from voice_core.tenant.models import Tenant
 from voice_core.tenant.api.serializers import TenantSerializer
 
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
+
+from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
+from django.contrib.contenttypes.models import ContentType
 
 import logging
 logger = logging.getLogger(__name__)
-from django.contrib.admin.models import LogEntry, ADDITION, CHANGE
-from django.contrib.contenttypes.models import ContentType
+
 
 class TenantViewSet(
     mixins.ListModelMixin,
@@ -22,6 +26,17 @@ class TenantViewSet(
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
     permission_classes = [IsAdminUser] # only platform admin access 
+
+    def get_queryset(self):
+        queryset = Tenant.objects.all()
+        search = self.request.query_params.get("search")
+        if search:
+            logger.info(f"Filtering tenants with search='{search}'")
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(domain__icontains=search)
+            )
+        return queryset
+
 
     def create(self, request, *args, **kwargs):
         """
