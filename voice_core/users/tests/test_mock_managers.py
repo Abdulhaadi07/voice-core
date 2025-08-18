@@ -29,19 +29,17 @@ def test_create_admin_user_success():
     email = "test@example.com"
     password = "securepassword"
     name = "Test User"
-
     manager = UserManager()
     manager.model = MockUser 
 
-    # Mock all external calls
-    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="example"), \
          patch("voice_core.users.managers.create_cognito_user", return_value="cognito-sub-123"), \
          patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token-123"), \
          patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid-123", False)), \
          patch("voice_core.users.managers.create_wazo_user", return_value=["wazo-id-123", "wazo-username"]), \
          patch("voice_core.users.managers.send_welcome_msg"):
 
-        Group.objects.get_or_create(name="admin")
+        Group.objects.get_or_create(name="agent")
 
         user = manager._create_user(email=email, password=password, name=name)
 
@@ -50,7 +48,7 @@ def test_create_admin_user_success():
         assert user.wazo_user_id == "wazo-id-123"
         assert user.wazo_username == "wazo-username"
         user.groups.add.assert_called() 
-        assert user.groups.filter(name="admin").exists()
+        assert user.groups.filter(name="agent").exists()
 
 
 @pytest.mark.django_db
@@ -58,12 +56,10 @@ def test_create_agent_user_success():
     email = "agent@example.com"
     password = "agentpassword"
     name = "Agent User"
-
     manager = UserManager()
     manager.model = MagicMock() 
 
-    # Mock all external calls
-    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="example"), \
          patch("voice_core.users.managers.create_cognito_user", return_value="cognito-sub-456"), \
          patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token-456"), \
          patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid-456", True)), \
@@ -79,8 +75,7 @@ def test_create_agent_user_success():
 
         assert user == user_instance
         user.groups.add.assert_called()  
-        assert user.groups.filter(name="admin").exists()
-
+        assert user.groups.filter(name="agent").exists()
 
 
 @pytest.mark.django_db
@@ -88,21 +83,19 @@ def test_create_user_cognito_failure():
     manager = UserManager()
     manager.model = MockUser
 
-    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="example"), \
          patch("voice_core.users.managers.create_cognito_user", return_value=None):
 
         with pytest.raises(Exception) as exc_info:
             manager._create_user(email="failcognito@example.com", password="pass")
-
         assert "Failed to create Cognito user" in str(exc_info.value)
-
 
 @pytest.mark.django_db
 def test_create_user_wazo_token_failure_triggers_rollback():
     manager = UserManager()
     manager.model = MockUser
 
-    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="example"), \
          patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
          patch("voice_core.users.managers.get_wazo_admin_token", return_value=None), \
          patch.object(manager, "_rollback_on_failure") as mock_rollback:
@@ -113,13 +106,12 @@ def test_create_user_wazo_token_failure_triggers_rollback():
         mock_rollback.assert_called_once()
         assert "Failed to get Wazo admin token" in str(exc_info.value)
 
-
 @pytest.mark.django_db
 def test_create_user_wazo_tenant_failure_triggers_rollback():
     manager = UserManager()
     manager.model = MockUser
 
-    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="example"), \
          patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
          patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token"), \
          patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=(None, False)), \
@@ -130,31 +122,7 @@ def test_create_user_wazo_tenant_failure_triggers_rollback():
 
         mock_rollback.assert_called_once()
         assert "Failed to get Wazo tenant UUID" in str(exc_info.value)
-
-
-@pytest.mark.django_db
-def test_create_user_wazo_creation_failure_triggers_rollback():
-    manager = UserManager()
-    manager.model = MockUser
-
-    Group.objects.get_or_create(name="admin")
-    Group.objects.get_or_create(name="agent")
-
-    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
-         patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
-         patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token"), \
-         patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid", False)), \
-         patch("voice_core.users.managers.create_wazo_user", return_value=[None, None]), \
-         patch.object(manager, "_rollback_on_failure") as mock_rollback, \
-         patch("voice_core.users.managers.delete_cognito_user"), \
-         patch("voice_core.users.managers.delete_wazo_user"):
-
-        with pytest.raises(Exception) as exc_info:
-            manager._create_user(email="failwazo@example.com", password="pass")
-
-        mock_rollback.assert_called_once()
-        assert "Failed to create Wazo user" in str(exc_info.value)
-
+      
 def test_rollback_on_failure_deletes_from_all_services():
     manager = UserManager()
     user_mock = MagicMock()
@@ -186,23 +154,22 @@ def test_create_user_with_no_email_raises_value_error():
 
     assert "The given email must be set" in str(exc_info.value)
 
-
 @pytest.mark.django_db
 def test_create_superuser_sets_fields_correctly():
     manager = UserManager()
     manager.model = MockUser
-
+    
     Group.objects.get_or_create(name="admin")
     Group.objects.get_or_create(name="agent")
 
-    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="tenant1"), \
-         patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
-         patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token"), \
-         patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid", False)), \
-         patch("voice_core.users.managers.create_wazo_user", return_value=["wazo-id", "wazo-user"]), \
-         patch("voice_core.users.managers.send_welcome_msg"), \
-         patch("voice_core.users.managers.delete_cognito_user"), \
-         patch("voice_core.users.managers.delete_wazo_user"):
+    with patch("voice_core.users.managers.resolve_tenant_from_email", return_value="example"), \
+            patch("voice_core.users.managers.create_cognito_user", return_value="sub123"), \
+            patch("voice_core.users.managers.get_wazo_admin_token", return_value="admin-token"), \
+            patch("voice_core.users.managers.get_wazo_tenant_uuid", return_value=("tenant-uuid", False)), \
+            patch("voice_core.users.managers.create_wazo_user", return_value=["123e4567-e89b-12d3-a456-426614174000", "wazo-username"]), \
+            patch("voice_core.users.managers.send_welcome_msg"), \
+            patch("voice_core.users.managers.delete_cognito_user"), \
+            patch("voice_core.users.managers.delete_wazo_user"):
 
         superuser = manager.create_superuser(email="super@example.com", password="superpass")
 

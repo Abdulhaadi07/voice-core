@@ -36,6 +36,17 @@ class User(AbstractUser):
     last_name = None  # type: ignore[assignment]
     username = None  # type: ignore[assignment]
 
+    ADMIN = "admin"
+    SUPERVISOR = "supervisor"
+    AGENT = "agent"
+
+    ROLE_CHOICES = [
+        (ADMIN, "Admin"),
+        (SUPERVISOR, "Supervisor"),
+        (AGENT, "Agent"),
+    ]
+    tenant_role = CharField(max_length=20, choices=ROLE_CHOICES, default=AGENT)  # default to agent
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["name"]
 
