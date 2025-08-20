@@ -90,7 +90,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         email = validated_data.pop("email")
         password = validated_data.pop("password")
         logger.info(f"User creation requested: email={email}, name={name}")
-        user = User.objects._create_user(email=email, password=password, name=name)
+        user = User.objects.create_user(email=email, password=password, name=name)
         logger.info(f"User created: id={user.id}, email={user.email}")
         return user
 

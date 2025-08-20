@@ -361,3 +361,7 @@ WAZO_ADMIN_USERNAME = os.getenv("WAZO_ADMIN_USERNAME")
 WAZO_ADMIN_PASSWORD = os.getenv("WAZO_ADMIN_PASSWORD")
 WAZO_API_URL=os.getenv("WAZO_API_URL")
 WAZO_TOKEN_EXPIRATION=os.getenv("WAZO_TOKEN_EXPIRATION")
+
+# Generate a Fernet key once (store securely)
+# Example: Fernet.generate_key() → b'your-generated-key'
+SIP_ENCRYPTION_KEY = b'GrKAyvLSpSC-TQKKOwxrGzwoHIPp99q9OJ3prlMAhd4='

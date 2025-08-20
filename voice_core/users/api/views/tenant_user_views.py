@@ -75,13 +75,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         try:
             user = serializer.save(tenant=tenant, tenant_role=tenant_role)
             logger.info(
-                "Tenant user created",
-                extra={
-                    "tenant_id": tenant.id,
-                    "user_id": user.id,
-                    "email": user.email,
-                    "role": user.tenant_role,
-                },
+                f"Tenant user created. Tenant_id: {tenant.id}, user_id: {user.id}, email: {user.email}, tenant_role: {user.tenant_role}"
             )
             # Admin audit log for creation
             LogEntry.objects.log_action(

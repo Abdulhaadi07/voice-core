@@ -12,7 +12,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from voice_core.users.models import User
+from voice_core.users.models import User, ExtensionAssignment
 from voice_core.users.api.serializers.role_serializer import RoleAssignmentSerializer
 from voice_core.users.api.serializers.user_serializer import UserSerializer
 
@@ -77,7 +77,3 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
-    def get_serializer_class(self):
-        if self.action == "assign_role":
-            return RoleAssignmentSerializer
-        return super().get_serializer_class()

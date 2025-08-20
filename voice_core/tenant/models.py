@@ -16,5 +16,9 @@ class Tenant(TimeStampedModel):
     # Wazo-related fields
     wazo_tenant_uuid = models.UUIDField(unique=True, blank=True, null=True)
 
+    # Contexts field for storing tenant-specific configuration
+    contexts = models.JSONField(default=dict, blank=True)
+
     def __str__(self):
         return self.name
+
