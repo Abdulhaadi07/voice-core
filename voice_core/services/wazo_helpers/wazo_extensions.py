@@ -279,12 +279,12 @@ def create_user_voicemail(
     }
 
     start = time.perf_counter()
-    logger.info(f"create_voicemail_start tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} extension={extension_number} context={context_name} url={url}")
+    logger.info(f"create_user_voicemail_start tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} extension={extension_number} context={context_name} url={url}")
     try:
         resp = requests.post(url, headers=headers, json=payload, verify=False)
     except requests.RequestException as exc:
         duration_ms = int((time.perf_counter() - start) * 1000)
-        logger.error(f"create_voicemail_request_error tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} error={exc} duration_ms={duration_ms}")
+        logger.error(f"create_user_voicemail_request_error tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} error={exc} duration_ms={duration_ms}")
         return False
     duration_ms = int((time.perf_counter() - start) * 1000)
     if resp.status_code == 201:
@@ -292,17 +292,17 @@ def create_user_voicemail(
             data = resp.json()
             enabled_raw = data.get("enabled")
             enabled_flag = enabled_raw if isinstance(enabled_raw, bool) else str(enabled_raw).lower() == "true"
-            logger.info(f"create_voicemail_success tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} voicemail_id={data.get('id')} enabled={enabled_flag} duration_ms={duration_ms}")
+            logger.info(f"create_user_voicemail_success tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} voicemail_id={data.get('id')} enabled={enabled_flag} duration_ms={duration_ms}")
             return (
                 data.get("id"),
                 data.get("password"),
                 enabled_flag,
             )
         except (ValueError, KeyError) as e:
-            logger.error(f"create_voicemail_parse_error tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} error={e} duration_ms={duration_ms}")
+            logger.error(f"create_user_voicemail_parse_error tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} error={e} duration_ms={duration_ms}")
             return None, None, None
 
-    logger.error(f"create_voicemail_failed tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} status={resp.status_code} body={_truncate(resp.text)} duration_ms={duration_ms}")
+    logger.error(f"create_user_voicemail_failed tenant_uuid={tenant_uuid} wazo_user_id={wazo_user_id} status={resp.status_code} body={_truncate(resp.text)} duration_ms={duration_ms}")
     return False
 
 

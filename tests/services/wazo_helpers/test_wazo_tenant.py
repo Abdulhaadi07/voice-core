@@ -51,13 +51,15 @@ def test_get_wazo_tenant_uuid_existing_tenant(tenant):
     tenant.wazo_tenant_uuid = existing_uuid
     tenant.save = MagicMock()
 
-    # Mock create_wazo_tenant
-    with patch("voice_core.services.wazo_helpers.wazo_tenant.create_wazo_tenant") as mock_create:
+    # Mock create_wazo_tenant and create_context
+    with patch("voice_core.services.wazo_helpers.wazo_tenant.create_wazo_tenant") as mock_create_tenant, \
+         patch("voice_core.services.wazo_helpers.wazo_tenant.create_context") as mock_create_context:
         result_uuid, did_exist = get_wazo_tenant_uuid(tenant, "admin-token-123")
 
         assert result_uuid == existing_uuid
         assert did_exist is True
-        mock_create.assert_not_called()
+        mock_create_tenant.assert_not_called()
+        mock_create_context.assert_not_called()
         tenant.save.assert_not_called()
 
 def test_get_wazo_tenant_uuid_new_tenant_success(tenant):
@@ -65,14 +67,20 @@ def test_get_wazo_tenant_uuid_new_tenant_success(tenant):
     tenant.wazo_tenant_uuid = None
     tenant.save = MagicMock()
 
-    # Mock create_wazo_tenant
-    with patch("voice_core.services.wazo_helpers.wazo_tenant.create_wazo_tenant", return_value=new_uuid) as mock_create:
+    fake_context = {"uuid": "ctx-uuid", "name": "name", "label": "label", "user_ranges": []}
+
+    with patch("voice_core.services.wazo_helpers.wazo_tenant.create_wazo_tenant", return_value=new_uuid) as mock_create_tenant, \
+         patch("voice_core.services.wazo_helpers.wazo_tenant.create_context", return_value=fake_context) as mock_create_context:
         result_uuid, did_exist = get_wazo_tenant_uuid(tenant, "admin-token-123")
 
-        assert result_uuid == new_uuid
-        assert did_exist is False
-        tenant.save.assert_called_once_with(update_fields=['wazo_tenant_uuid'])
-        mock_create.assert_called_once_with(tenant.name, "admin-token-123")
+    assert result_uuid == new_uuid
+    assert did_exist is False
+
+    tenant.save.assert_any_call(update_fields=['wazo_tenant_uuid'])
+    assert tenant.save.call_count == 2  # second save after contexts update
+
+    mock_create_tenant.assert_called_once_with(tenant.name, "admin-token-123")
+    mock_create_context.assert_called_once_with(tenant)
 
 @patch("voice_core.services.wazo_helpers.wazo_tenant.create_wazo_tenant")
 def test_get_wazo_tenant_uuid_save_raises(mock_create_tenant, tenant):
