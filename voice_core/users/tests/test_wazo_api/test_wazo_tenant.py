@@ -1,17 +1,16 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from voice_core.tenant.models import Tenant
-from voice_core.users.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid, create_wazo_tenant
+from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid, create_wazo_tenant
 import uuid
 
 
 @pytest.fixture
 def tenant():
-    # Create a simple Tenant instance (not saved to DB)
     return Tenant(name="TestTenant")
 
 
-@patch("voice_core.users.wazo_helpers.wazo_tenant.requests.post")
+@patch("voice_core.services.wazo_helpers.wazo_tenant.requests.post")
 def test_create_wazo_tenant_success(mock_post):
     fake_uuid = str(uuid.uuid4())
     mock_response = MagicMock()
@@ -28,7 +27,7 @@ def test_create_wazo_tenant_success(mock_post):
     assert called_url.endswith("/api/auth/0.1/tenants")
 
 
-@patch("voice_core.users.wazo_helpers.wazo_tenant.requests.post")
+@patch("voice_core.services.wazo_helpers.wazo_tenant.requests.post")
 def test_create_wazo_tenant_failure_status(mock_post):
     mock_response = MagicMock()
     mock_response.status_code = 400
@@ -39,7 +38,7 @@ def test_create_wazo_tenant_failure_status(mock_post):
     assert result is None
 
 
-@patch("voice_core.users.wazo_helpers.wazo_tenant.requests.post")
+@patch("voice_core.services.wazo_helpers.wazo_tenant.requests.post")
 def test_create_wazo_tenant_raises_request_exception(mock_post):
     mock_post.side_effect = Exception("Connection error")
 
@@ -47,33 +46,35 @@ def test_create_wazo_tenant_raises_request_exception(mock_post):
     assert result is None
 
 
-@patch("voice_core.users.wazo_helpers.wazo_tenant.create_wazo_tenant")
-def test_get_wazo_tenant_uuid_existing_tenant(mock_create_tenant, tenant):
-    tenant.wazo_tenant_uuid = uuid.uuid4()
+def test_get_wazo_tenant_uuid_existing_tenant(tenant):
+    existing_uuid = uuid.uuid4()
+    tenant.wazo_tenant_uuid = existing_uuid
     tenant.save = MagicMock()
 
-    result = get_wazo_tenant_uuid(tenant, "admin-token-123")
+    # Mock create_wazo_tenant
+    with patch("voice_core.services.wazo_helpers.wazo_tenant.create_wazo_tenant") as mock_create:
+        result_uuid, did_exist = get_wazo_tenant_uuid(tenant, "admin-token-123")
 
-    assert result == tenant.wazo_tenant_uuid
-    mock_create_tenant.assert_not_called()
-    tenant.save.assert_not_called()
+        assert result_uuid == existing_uuid
+        assert did_exist is True
+        mock_create.assert_not_called()
+        tenant.save.assert_not_called()
 
-
-@patch("voice_core.users.wazo_helpers.wazo_tenant.create_wazo_tenant")
-def test_get_wazo_tenant_uuid_new_tenant_success(mock_create_tenant, tenant):
+def test_get_wazo_tenant_uuid_new_tenant_success(tenant):
     new_uuid = uuid.uuid4()
-    mock_create_tenant.return_value = new_uuid
     tenant.wazo_tenant_uuid = None
     tenant.save = MagicMock()
 
-    result = get_wazo_tenant_uuid(tenant, "admin-token-123")
+    # Mock create_wazo_tenant
+    with patch("voice_core.services.wazo_helpers.wazo_tenant.create_wazo_tenant", return_value=new_uuid) as mock_create:
+        result_uuid, did_exist = get_wazo_tenant_uuid(tenant, "admin-token-123")
 
-    assert result == new_uuid
-    tenant.save.assert_called_once_with(update_fields=['wazo_tenant_uuid'])
-    mock_create_tenant.assert_called_once_with(tenant.name, "admin-token-123")
+        assert result_uuid == new_uuid
+        assert did_exist is False
+        tenant.save.assert_called_once_with(update_fields=['wazo_tenant_uuid'])
+        mock_create.assert_called_once_with(tenant.name, "admin-token-123")
 
-
-@patch("voice_core.users.wazo_helpers.wazo_tenant.create_wazo_tenant")
+@patch("voice_core.services.wazo_helpers.wazo_tenant.create_wazo_tenant")
 def test_get_wazo_tenant_uuid_save_raises(mock_create_tenant, tenant):
     new_uuid = uuid.uuid4()
     mock_create_tenant.return_value = new_uuid

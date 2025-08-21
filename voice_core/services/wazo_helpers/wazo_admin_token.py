@@ -1,14 +1,19 @@
-import logging
 from django.core.cache import caches
-from config.settings.local import WAZO_API_URL,WAZO_TOKEN_EXPIRATION,WAZO_ADMIN_PASSWORD,WAZO_ADMIN_USERNAME
 import requests
 from requests.auth import HTTPBasicAuth
+from config.settings.base import (
+    WAZO_ADMIN_PASSWORD,
+    WAZO_ADMIN_USERNAME,
+    WAZO_API_URL,
+    WAZO_TOKEN_EXPIRATION,
+)
 
+import logging
 logger = logging.getLogger(__name__)
 
 # Cache key for Wazo admin token
 WAZO_TOKEN_CACHE_KEY = 'wazo_admin_token'
-_cache_timeout = int(WAZO_TOKEN_EXPIRATION) #getattr(settings, 'WAZO_TOKEN_EXPIRATION', 3600)  # 1 hour default timeout
+_cache_timeout = int(WAZO_TOKEN_EXPIRATION) # default timeout
 
 
 def get_wazo_admin_token() -> str:

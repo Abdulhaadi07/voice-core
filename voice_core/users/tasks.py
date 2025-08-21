@@ -1,11 +1,10 @@
-import logging
-from typing import List, Optional, Sequence
-from smtplib import SMTPAuthenticationError
-
 from django.core.mail import get_connection, EmailMultiAlternatives
 from django.conf import settings
 from celery import shared_task
+from smtplib import SMTPAuthenticationError
+from typing import List, Optional, Sequence
 
+import logging
 logger = logging.getLogger(__name__)
 
 @shared_task()
