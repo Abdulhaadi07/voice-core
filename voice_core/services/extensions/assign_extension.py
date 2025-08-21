@@ -261,9 +261,9 @@ def assign_extension(
 			f"Line Creation: {line_creation_time:.3f}s, "
 			f"Extension Creation: {extension_creation_time:.3f}s, "
 			f"SIP Endpoint Creation: {sip_endpoint_creation_time:.3f}s, "
-			f"Assign Line→SIP: {assign_line_to_sip_time:.3f}s, "
-			f"Assign Line→Extension: {assign_line_to_extension_time:.3f}s, "
-			f"Assign User→Line: {assign_user_to_line_time:.3f}s, "
+			f"Assign Line SIP: {assign_line_to_sip_time:.3f}s, "
+			f"Assign Line Extension: {assign_line_to_extension_time:.3f}s, "
+			f"Assign User Line: {assign_user_to_line_time:.3f}s, "
 			f"Voicemail Creation: {voicemail_creation_time:.3f}s, "
 			f"Total: {total_time:.3f}s"
 		)
