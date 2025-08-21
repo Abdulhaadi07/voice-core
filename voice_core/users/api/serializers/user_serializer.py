@@ -72,7 +72,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"tenant": "Invalid tenant ID."})
 
             # Check email domain
-            if tenant.domain and not email.endswith(f"@{tenant.domain}"):
+            if tenant.domain and not email.lower().endswith(f"@{tenant.domain.lower()}"):
                 raise serializers.ValidationError(
                     {"email": f"Email domain must match tenant domain: {tenant.domain}"}
                 )

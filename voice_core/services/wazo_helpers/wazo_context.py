@@ -2,7 +2,10 @@ from django.core import serializers
 import requests
 from typing import Tuple, List
 import uuid
-from config.settings.base import WAZO_API_URL
+from config.settings.base import (
+    EXTENSION_START_VALUE,
+    WAZO_API_URL,
+)
 from voice_core.tenant.models import Tenant
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 
@@ -15,7 +18,9 @@ def create_context(tenant: Tenant):
     try:
         admin_token = get_wazo_admin_token()
         label = f"{tenant.name}-initial-context"
-        user_ranges = [{"start": f"{100}", "end": f"{100+tenant.max_users}"}]
+        extension_start_value = int(EXTENSION_START_VALUE)
+        logger.info(f"extension_start_value: {extension_start_value}")
+        user_ranges = [{"start": f"{str(extension_start_value)}", "end": f"{str(extension_start_value+tenant.max_users)}"}]
         context_type = "internal"
         
         logger.info(f"Creating Wazo context with label: {label}, type: {context_type}, user_ranges: {user_ranges}")
