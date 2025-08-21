@@ -9,11 +9,13 @@ from drf_spectacular.views import SpectacularAPIView
 from drf_spectacular.views import SpectacularSwaggerView
 
 urlpatterns = [
-    path("", lambda request: redirect("admin:index"), name="home"),
+    # Redirect root URL to login
+    path("", lambda request: redirect("users:login"), name="root-redirect"),
+    # Include your users app URLs
+    path("", include("voice_core.users.urls")),
+    # Your stuff: custom urls includes go here
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
-    # User management
-    # Your stuff: custom urls includes go here
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),

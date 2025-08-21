@@ -28,13 +28,14 @@ class UserSerializer(serializers.ModelSerializer[User]):
 class UserListSerializer(serializers.ModelSerializer):
     """Serializer for listing users."""
     tenant_name = serializers.CharField(source='tenant.name', read_only=True)
+    tenant_id = serializers.CharField(source='tenant.id', read_only=True)
     platform_role = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'is_active', 'date_joined', 'last_login',
-            'platform_role', 'tenant_name', 'tenant_role'
+            'platform_role', 'tenant_id', 'tenant_name', 'tenant_role'
         ]
         read_only_fields = fields
     
@@ -90,7 +91,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         email = validated_data.pop("email")
         password = validated_data.pop("password")
         logger.info(f"User creation requested: email={email}, name={name}")
-        user = User.objects._create_user(email=email, password=password, name=name)
+        user = User.objects.create_user(email=email, password=password, name=name)
         logger.info(f"User created: id={user.id}, email={user.email}")
         return user
 
@@ -127,13 +128,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class UserDetailSerializer(serializers.ModelSerializer):
     """Serializer for detailed user information."""
     tenant_name = serializers.CharField(source='tenant.name', read_only=True)
+    tenant_id = serializers.CharField(source='tenant.id', read_only=True)
     platform_role = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'is_active', 'date_joined', 'last_login',
-            'platform_role', 'tenant_name', 'tenant_role'
+            'platform_role', 'tenant_id', 'tenant_name', 'tenant_role'
         ]
         read_only_fields = fields
     

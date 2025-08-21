@@ -12,10 +12,30 @@
 </head>
 <body>
 
-    <!-- Optional: Navbar -->
+    <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Netapse</a>
+            <a class="navbar-brand">
+                <i class="fas fa-phone me-2"></i>
+                Netapse Voice Core
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                {% if user.is_authenticated %}
+                    <span class="navbar-text me-3">
+                        Welcome, {{ user.name }}
+                    </span>
+                    <a class="nav-link" href="{% url 'users:logout' %}">
+                        <i class="fas fa-sign-out-alt me-1"></i>
+                        Sign Out
+                    </a>
+                {% else %}
+                    <a class="nav-link" href="{% url 'users:login' %}">
+                        <i class="fas fa-sign-in-alt me-1"></i>
+                        Sign In
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </nav>
 

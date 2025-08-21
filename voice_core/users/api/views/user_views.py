@@ -12,9 +12,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from voice_core.users.models import User
+from voice_core.users.models import User, ExtensionAssignment
 from voice_core.users.api.serializers.role_serializer import RoleAssignmentSerializer
-from voice_core.users.api.serializers.user_serializer import UserSerializer
+from voice_core.users.api.serializers.user_serializer import UserSerializer, UserDetailSerializer
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,30 +28,38 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
     def get_permissions(self):
         if self.action == "create":
             return [AllowAny()]
+        if self.action == "assign_role":
+            return [IsAdminUser()]
         return [IsAuthenticated()]
 
     def get_object(self):
         return self.request.user
 
+    @extend_schema(
+        responses=UserDetailSerializer
+    )
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def me(self, request):
         logger.info(f"User 'me' endpoint accessed by user_id={request.user.id}")
-        serializer = self.get_serializer(request.user)
+        serializer = UserDetailSerializer(request.user, context={"request": request})
         return Response(serializer.data)
 
     
-    @extend_schema(tags=["Role Management"])
+    @extend_schema(
+        tags=["Role Management"],
+        summary="Assign Platform Role to User",
+        description="Assign a platform role (admin, supervisor, agent) to a user. This will replace any existing platform roles.",
+        request=RoleAssignmentSerializer,
+    )
     @action(
         detail=True,
         methods=["post"],
-        url_path="assign-role",
-        permission_classes=[IsAuthenticated, IsAdminUser]
+        url_path="assign-role"
     )
     def assign_role(self, request, pk=None): # assign platform role
         user = get_object_or_404(User, pk=pk)
         logger.info(f"Assigning platform role to user_id={user.id}, email={user.email}")
-
-        serializer = self.get_serializer_class()(data=request.data)
+        serializer = RoleAssignmentSerializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
             updated_user = serializer.save(user=user)
@@ -77,7 +85,3 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
-    def get_serializer_class(self):
-        if self.action == "assign_role":
-            return RoleAssignmentSerializer
-        return super().get_serializer_class()
