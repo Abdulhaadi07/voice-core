@@ -47,3 +47,6 @@ DJANGO_EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
 # Generate a Fernet key once (store securely)
 # Example: Fernet.generate_key() → b'your-generated-key'
 SIP_ENCRYPTION_KEY=<encryption_key>
+
+# extension start value {ex: 100, 1000,....}
+EXTENSION_START_VALUE = 100
