@@ -1,7 +1,7 @@
 import pytest
 
 from voice_core.users.models import User
-from voice_core.users.tests.factories import UserFactory
+from tests.factories import UserFactory
 
 
 @pytest.fixture(autouse=True)

@@ -32,7 +32,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _rollback_provisioning(
+def _rollback_extension_assignment(
 	admin_token: str | None,
 	tenant_uuid: str | None,
 	*,
@@ -257,7 +257,7 @@ def assign_extension(
 		total_time = (create_user_voicemail_end_time - create_line_start_time).total_seconds()
 
 		logger.info(
-			f"Extension assignment completed successfully."
+			f"Extension assignment completed successfully. "
 			f"Line Creation: {line_creation_time:.3f}s, "
 			f"Extension Creation: {extension_creation_time:.3f}s, "
 			f"SIP Endpoint Creation: {sip_endpoint_creation_time:.3f}s, "
@@ -276,7 +276,7 @@ def assign_extension(
 		)
 		# Attempt best-effort Rollback
 		try:
-			_rollback_provisioning(
+			_rollback_extension_assignment(
 				admin_token=admin_token,
 				tenant_uuid=tenant_uuid,
 				line_id=line_id,
