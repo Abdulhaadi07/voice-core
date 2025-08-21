@@ -24,7 +24,7 @@ tenant_user_urls = [
         name='tenant-users-list-create'
     ),
     path(
-        'tenants/<int:tenant_id>/users/<int:pk>/',
+        'tenants/<int:tenant_id>/users/<int:user_id>/',
         TenantUserViewSet.as_view({'get': 'retrieve', 'patch':'partial_update'}),
         name='tenant-users-detail-update'
     )

@@ -1,6 +1,4 @@
-
 from typing import ClassVar
-
 from django.contrib.auth.models import AbstractUser
 from django.db.models import CharField
 from django.db.models import EmailField
@@ -8,14 +6,16 @@ from django.db.models import ForeignKey
 from django.db.models import UUIDField
 from django.db.models import DateTimeField
 from django.db.models import PROTECT
+from django_extensions.db.models import TimeStampedModel
 from django.utils.translation import gettext_lazy as _
 from django.db import models
-from .managers import UserManager
-from django_extensions.db.models import TimeStampedModel
 from django.conf import settings
-from cryptography.fernet import Fernet
 
 from config.settings.base import SIP_ENCRYPTION_KEY
+from cryptography.fernet import Fernet
+
+from .managers import UserManager
+
 
 class User(AbstractUser):
     """

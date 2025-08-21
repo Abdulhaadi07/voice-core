@@ -1,12 +1,12 @@
-import logging
+from django.core import serializers
+import requests
+from typing import Tuple
+import uuid
 from config.settings.base import WAZO_API_URL
 from voice_core.tenant.models import Tenant
-import requests
-from django.core import serializers
-import uuid
-from typing import Tuple
 from voice_core.services.wazo_helpers.wazo_context import create_context
 
+import logging
 logger = logging.getLogger(__name__)
 
 def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> Tuple[str, bool]: # return tenant_uuid, does_tenant_pre_exist flag
@@ -17,24 +17,19 @@ def get_wazo_tenant_uuid(tenant: Tenant, admin_token: str) -> Tuple[str, bool]: 
     tenant_uuid = create_wazo_tenant(tenant.name, admin_token)
     logger.info(f"Created New Wazo tenant: {tenant_uuid}")
 
-
-
     # Update tenant object and save
     try:
         tenant.wazo_tenant_uuid = tenant_uuid
         tenant.save(update_fields=['wazo_tenant_uuid'])
-
         #create initial context
         context_data = create_context(tenant)
         # Store context data in tenant's contexts JSON field as a plain array of objects
         existing_contexts = tenant.contexts or []
         if isinstance(existing_contexts, dict):
-            # migrate legacy dict format to list
             existing_contexts = list(existing_contexts.values())
         existing_contexts.append(context_data)
         tenant.contexts = existing_contexts
         tenant.save()
-        
     except Exception as e:
         logger.info(f"Error saving tenant: {str(e)}")
         raise e 

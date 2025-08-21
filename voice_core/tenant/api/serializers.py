@@ -1,5 +1,5 @@
-from zoneinfo import available_timezones
 from rest_framework import serializers
+from zoneinfo import available_timezones
 from voice_core.tenant.models import Tenant
 
 
@@ -18,7 +18,6 @@ class TenantSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "wazo_tenant_uuid"]
 
 
-
 class AvailableExtensionsSerializer(serializers.Serializer):
     contexts = serializers.DictField(
         child=serializers.ListField(
@@ -27,3 +26,4 @@ class AvailableExtensionsSerializer(serializers.Serializer):
         ),
         help_text="Dictionary mapping context names to lists of available extensions"
     )
+    

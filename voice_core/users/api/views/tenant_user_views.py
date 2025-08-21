@@ -12,6 +12,7 @@ from rest_framework import generics, viewsets
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
+from voice_core.users.permissions import IsPlatformAdminOrTenantAdmin
 from voice_core.tenant.models import Tenant
 from voice_core.users.api.serializers.user_serializer import (
     UserCreateSerializer,
@@ -38,8 +39,8 @@ class TenantUserViewSet(viewsets.GenericViewSet,
     - partial update
     - retrieve user
     """
-    permission_classes = [IsAdminUser]
-    lookup_field = "pk"
+    permission_classes = [IsPlatformAdminOrTenantAdmin]
+    lookup_field = "user_id"
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -95,7 +96,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
             raise
 
     def retrieve(self, request, *args, **kwargs):
-        user_id = self.kwargs.get("pk")
+        user_id = self.kwargs.get("user_id")
         tenant_id = self.kwargs.get("tenant_id")
         tenant = get_object_or_404(Tenant, id=tenant_id)
         user = get_object_or_404(User, id=user_id, tenant=tenant)
@@ -108,7 +109,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         return Response(serializer.data)
 
     def partial_update(self, request, *args, **kwargs):
-        user_id = self.kwargs.get("pk")
+        user_id = self.kwargs.get("user_id")
         tenant_id = self.kwargs.get("tenant_id")
         tenant = get_object_or_404(Tenant, id=tenant_id)
         user = get_object_or_404(User, id=user_id, tenant=tenant)

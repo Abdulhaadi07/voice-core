@@ -1,8 +1,8 @@
-from config.settings.base import WAZO_API_URL
 import requests
 from typing import Tuple
-import logging
+from config.settings.base import WAZO_API_URL
 
+import logging
 logger = logging.getLogger(__name__)
 
 
@@ -130,6 +130,7 @@ def assign_user_with_line(admin_token: str, tenant_uuid: str, user_uuid: str, li
     logger.error(f"Failed to assign user with line: {resp.status_code} {resp.text}")
     return False
 
+
 def get_transport_uuid(admin_token: str):
     url = f"{WAZO_API_URL}/api/confd/1.1/sip/transports"
     logger.info(f"Getting Transport upd uuid ")
@@ -232,28 +233,6 @@ def create_voicemail(
 
     logger.error(f"Failed to create voicemail for user {wazo_user_id}: {resp.status_code} {resp.text}")
     return False
-
-# curl -X 'POST' \
-#   'https://35.169.30.120/api/confd/1.1/users/9483eb79-497b-4867-b867-26c996d39a9b/voicemails' \
-#   -H 'accept: application/json' \
-#   -H 'Wazo-Tenant: ff2d1406-88bf-4a8d-bd9d-7f7bb03a79c8' \
-#   -H 'Content-Type: application/json' \
-#   -H 'X-Auth-Token: ddb33c3d-6c1e-4e19-ac19-6bd2074b40c0' \
-#   -d '{
-#   "ask_password": true,
-#   "attach_audio": true,
-#   "context": "ctx-aug203com-internal-6f1589b9-760b-4965-910a-afc4f0de246d",
-#   "delete_messages": false,
-#   "email": "withAuthU2T80@aug203.com",
-#   "enabled": true,
-#   "language": "en_US",
-#   "max_messages": 10,
-#   "number": "142",
-  
-#   "password": "1234",
-#   "timezone": "na-newfoundland",
-#   "name": "test2"
-# }'
 
 # ============ ROLLBACK / DELETE HELPERS ============
 

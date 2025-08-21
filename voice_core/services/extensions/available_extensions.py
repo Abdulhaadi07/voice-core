@@ -1,5 +1,8 @@
 import logging
-from typing import List, Dict
+from typing import (
+    List, 
+    Dict,
+)
 from voice_core.tenant.models import Tenant
 from voice_core.users.models import ExtensionAssignment
 
@@ -9,15 +12,8 @@ logger = logging.getLogger(__name__)
 def get_available_extensions(tenant_id: int) -> Dict[str, List[int]]:
     """
     Get available extensions for a specific tenant, grouped by context.
-    
-    Args:
-        tenant_id: The primary key of the tenant
-        
-    Returns:
-        Dictionary with context names as keys and lists of available extensions as values
     """
     try:
-        # Get tenant from tenant.pk = tenant_id
         tenant = Tenant.objects.get(pk=tenant_id)
         logger.info(f"Getting available extensions for tenant: {tenant.name} (ID: {tenant_id})")
         
@@ -45,11 +41,6 @@ def get_available_extensions(tenant_id: int) -> Dict[str, List[int]]:
                 context_name = context_data.get('name')
                 context_label = context_data.get('label')
                 context_uuid = context_data.get('uuid', '')
-                # derive fallback names if missing
-                if not context_name and context_uuid:
-                    context_name = f"Context-{context_uuid}"
-                if not context_label and context_uuid:
-                    context_label = f"Context-{context_uuid}"
                 
                 # Use label as the key, fallback to name if label is empty
                 context_key = context_name
@@ -59,7 +50,6 @@ def get_available_extensions(tenant_id: int) -> Dict[str, List[int]]:
                 for user_range in context_data['user_ranges']:
                     start = int(user_range.get('start', 0))
                     end = int(user_range.get('end', 0))
-                    
                     # Generate range of extensions
                     context_extensions = list(range(start, end + 1))
                     context_possible_extensions.extend(context_extensions)

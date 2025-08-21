@@ -10,16 +10,24 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from voice_core.services.extensions.assign_extension import assign_extension
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
 from voice_core.tenant.models import Tenant
-from voice_core.tenant.api.serializers import TenantSerializer, AvailableExtensionsSerializer
-from rest_framework.decorators import action
+from voice_core.tenant.api.serializers import ( 
+	TenantSerializer, 
+	AvailableExtensionsSerializer,
+)
+from voice_core.users.permissions import IsPlatformAdminOrTenantAdmin
 from voice_core.services.extensions.available_extensions import get_available_extensions
 from voice_core.tenant.api.extension_assignment_serializer import AssignExtensionSerializer
-from voice_core.users.models import User, ExtensionAssignment
+from voice_core.users.models import (
+	User, 
+	ExtensionAssignment,
+)
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -136,7 +144,7 @@ class TenantViewSet(
 
 @extend_schema(tags=["Extension Management"])
 class ExtensionViewSet(viewsets.GenericViewSet):
-
+	permission_classes = [IsPlatformAdminOrTenantAdmin] # only platform admin or tenant admin can access 
 	def get_serializer_class(self):
 		if self.action == "available":
 			return AvailableExtensionsSerializer

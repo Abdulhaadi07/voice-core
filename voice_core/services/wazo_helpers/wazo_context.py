@@ -1,10 +1,11 @@
-from config.settings.base import WAZO_API_URL
-import requests
 from django.core import serializers
-import uuid
+import requests
 from typing import Tuple, List
+import uuid
+from config.settings.base import WAZO_API_URL
 from voice_core.tenant.models import Tenant
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -35,16 +36,6 @@ def create_wazo_context(admin_token: str,
                     user_ranges: List[dict] = None) -> dict:
     """
     Create a context in Wazo for a specific tenant.
-    
-    Args:
-        admin_token: Admin authentication token for Wazo
-        tenant_uuid: The UUID of the tenant
-        label: The label/name of the context
-        context_type: The type of context (default: "internal")
-        user_ranges: List of user ranges for the context
-        
-    Returns:
-        tuple: (uuid, name, label) of the created context
     """
     logger.info(f"Making Wazo API call to create context: {label} for tenant: {tenant_uuid}")
     logger.debug(f"Context details - type: {context_type}, user_ranges: {user_ranges}")

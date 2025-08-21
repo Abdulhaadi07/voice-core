@@ -42,3 +42,8 @@ DEFAULT_FROM_EMAIL=<"DEFAULT_FROM_EMAIL">
 EMAIL_REPLY_TO=<"EMAIL_REPLY_TO">
 EMAIL_TIMEOUT=3
 DJANGO_EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
+
+# SIP Encryption Key
+# Generate a Fernet key once (store securely)
+# Example: Fernet.generate_key() → b'your-generated-key'
+SIP_ENCRYPTION_KEY=<encryption_key>

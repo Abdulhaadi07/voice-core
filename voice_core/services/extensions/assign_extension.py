@@ -117,3 +117,4 @@ def assign_extension(
 			exc_info=True,
 		)
 		raise
+		

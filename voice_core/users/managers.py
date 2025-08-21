@@ -1,4 +1,3 @@
-
 from typing import TYPE_CHECKING
 from datetime import datetime
 from django.contrib.auth.hashers import make_password
@@ -13,7 +12,8 @@ from voice_core.users.registration.cognito import (
 )
 from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
 from voice_core.services.wazo_helpers.wazo_user import (
-    create_wazo_user, delete_wazo_user,
+    create_wazo_user, 
+    delete_wazo_user,
 )
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.users.utils import resolve_tenant_from_email

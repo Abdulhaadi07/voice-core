@@ -104,7 +104,7 @@ AUTH_USER_MODEL = "users.User"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
 LOGIN_REDIRECT_URL = "users:redirect"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-url
-LOGIN_URL = "account_login"
+LOGIN_URL = "users:login"
 
 # PASSWORDS
 # ------------------------------------------------------------------------------
@@ -322,7 +322,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Voice Core API",
     "DESCRIPTION": "Documentation of API endpoints of Voice Core",
     "VERSION": "1.0.0",
-    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
     "SCHEMA_PATH_PREFIX": "/api/",
 }
 # Your stuff...
@@ -362,6 +362,5 @@ WAZO_ADMIN_PASSWORD = os.getenv("WAZO_ADMIN_PASSWORD")
 WAZO_API_URL=os.getenv("WAZO_API_URL")
 WAZO_TOKEN_EXPIRATION=os.getenv("WAZO_TOKEN_EXPIRATION")
 
-# Generate a Fernet key once (store securely)
-# Example: Fernet.generate_key() → b'your-generated-key'
-SIP_ENCRYPTION_KEY = b'GrKAyvLSpSC-TQKKOwxrGzwoHIPp99q9OJ3prlMAhd4='
+# SIP Encryption Key
+SIP_ENCRYPTION_KEY = os.getenv("SIP_ENCRYPTION_KEY")
