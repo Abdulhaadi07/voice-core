@@ -28,13 +28,14 @@ class UserSerializer(serializers.ModelSerializer[User]):
 class UserListSerializer(serializers.ModelSerializer):
     """Serializer for listing users."""
     tenant_name = serializers.CharField(source='tenant.name', read_only=True)
+    tenant_id = serializers.CharField(source='tenant.id', read_only=True)
     platform_role = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'is_active', 'date_joined', 'last_login',
-            'platform_role', 'tenant_name', 'tenant_role'
+            'platform_role', 'tenant_id', 'tenant_name', 'tenant_role'
         ]
         read_only_fields = fields
     
@@ -127,13 +128,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class UserDetailSerializer(serializers.ModelSerializer):
     """Serializer for detailed user information."""
     tenant_name = serializers.CharField(source='tenant.name', read_only=True)
+    tenant_id = serializers.CharField(source='tenant.id', read_only=True)
     platform_role = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'is_active', 'date_joined', 'last_login',
-            'platform_role', 'tenant_name', 'tenant_role'
+            'platform_role', 'tenant_id', 'tenant_name', 'tenant_role'
         ]
         read_only_fields = fields
     
