@@ -4,7 +4,7 @@ from voice_core.tenant.models import Tenant
 from voice_core.users.models import ExtensionAssignment, User
 
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
-from voice_core.services.wazo_helpers.wazo_extentions import (
+from voice_core.services.wazo_helpers.wazo_extensions import (
 	create_line,
 	create_extension,
 	create_sip_endpoint,
