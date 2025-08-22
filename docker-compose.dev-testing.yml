@@ -1,0 +1,81 @@
+# docker-compose.dev-testing.yml
+version: '3.8'
+
+volumes:
+  voice_core_dev_postgres_data: {}
+  voice_core_dev_postgres_data_backups: {}
+  voice_core_dev_redis_data: {}
+
+services:
+  django: &django
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    image: voice_core_dev_django
+    container_name: voice_core_dev_django
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/app:z
+      - ~/.aws:/aws:ro
+    env_file:
+      - ./.envs/.dev-testing/.django
+      - ./.envs/.dev-testing/.postgres
+    ports:
+      - '8000:8000'
+    command: /start
+    restart: unless-stopped
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./compose/production/postgres/Dockerfile
+    image: voice_core_dev_postgres
+    container_name: voice_core_dev_postgres
+    volumes:
+      - voice_core_dev_postgres_data:/var/lib/postgresql/data
+      - voice_core_dev_postgres_data_backups:/backups
+    env_file:
+      - ./.envs/.dev-testing/.postgres
+    ports:
+      - '5433:5432'
+    restart: unless-stopped
+
+  redis:
+    image: docker.io/redis:6
+    container_name: voice_core_dev_redis
+    volumes:
+      - voice_core_dev_redis_data:/data
+    restart: unless-stopped
+
+  celeryworker:
+    <<: *django
+    image: voice_core_dev_celeryworker
+    container_name: voice_core_dev_celeryworker
+    depends_on:
+      - redis
+      - postgres
+    ports: []
+    command: /start-celeryworker
+    restart: unless-stopped
+
+  celerybeat:
+    <<: *django
+    image: voice_core_dev_celerybeat
+    container_name: voice_core_dev_celerybeat
+    depends_on:
+      - redis
+      - postgres
+    ports: []
+    command: /start-celerybeat
+    restart: unless-stopped
+
+  flower:
+    <<: *django
+    image: voice_core_dev_flower
+    container_name: voice_core_dev_flower
+    ports:
+      - '5555:5555'
+    command: /start-flower
+    restart: unless-stopped
