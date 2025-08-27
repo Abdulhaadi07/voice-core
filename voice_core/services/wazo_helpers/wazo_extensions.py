@@ -101,7 +101,7 @@ def create_sip_endpoint(
         "transport": {"uuid": transport_udp_uuid}
     }
     start = time.perf_counter()
-    logger.info(f"create_sip_endpoint_start tenant_uuid={tenant_uuid} label={label} url={url}")
+    logger.info(f"create_sip_endpoint_start tenant_uuid={tenant_uuid} label={label} url={url} data={data}")
     try:
         resp = requests.post(url, headers=_headers(admin_token, tenant_uuid), json=data, verify=False)
     except requests.RequestException as exc:
