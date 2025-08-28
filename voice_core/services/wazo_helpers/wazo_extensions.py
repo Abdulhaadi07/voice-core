@@ -6,6 +6,7 @@ from config.settings.base import WAZO_API_URL
 import logging
 logger = logging.getLogger(__name__)
 
+from voice_core.services.wazo_helpers.wazo_sip_template import get_sip_global_template
 
 def _truncate(text: str, limit: int = 500) -> str:
     if text is None:
@@ -90,7 +91,7 @@ def create_sip_endpoint(
     """
     url = f"{WAZO_API_URL}/api/confd/1.1/endpoints/sip"
     transport_udp_uuid = get_transport_uuid(admin_token)
-    global_template_uuid = get_global_template_uuid(admin_token, tenant_uuid)
+    global_template_uuid = get_sip_global_template(admin_token, tenant_uuid)
     logger.info(f"create_sip_endpoint_dependencies transport_udp_uuid={transport_udp_uuid} global_template_uuid={global_template_uuid}")
     data = {
         "auth_section_options": [["username", username], ["password", password]],
@@ -101,7 +102,7 @@ def create_sip_endpoint(
         "transport": {"uuid": transport_udp_uuid}
     }
     start = time.perf_counter()
-    logger.info(f"create_sip_endpoint_start tenant_uuid={tenant_uuid} label={label} url={url}")
+    logger.info(f"create_sip_endpoint_start tenant_uuid={tenant_uuid} label={label} url={url} data={data}")
     try:
         resp = requests.post(url, headers=_headers(admin_token, tenant_uuid), json=data, verify=False)
     except requests.RequestException as exc:
