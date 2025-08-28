@@ -70,6 +70,20 @@ class User(AbstractUser):
 
 fernet = Fernet(settings.SIP_ENCRYPTION_KEY)
 
+
+class UserConfig(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="config"
+    )
+    voicemail_enabled = models.BooleanField(default=False)
+    extension_enabled = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"UserConfig({self.user.email})"
+
+
 class EncryptedCharField(models.CharField):
     """CharField that encrypts on save and decrypts on read."""
 

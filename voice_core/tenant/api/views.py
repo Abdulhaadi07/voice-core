@@ -263,6 +263,10 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 			voicemail_max_messages = voicemail_max_messages,
 		)
 
+		# Update user config to enable extension 
+		user.config.extension_enabled = True
+		user.config.save()
+
 		logger.info(f"Assigned extension {assignment.extension} to user_id={user.id} in context '{context_name}'")
 		return Response(
 			{
