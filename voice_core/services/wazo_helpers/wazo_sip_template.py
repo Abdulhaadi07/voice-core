@@ -1,7 +1,10 @@
 import requests
 import time
 from typing import Tuple
-from config.settings.base import WAZO_API_URL
+from config.settings.base import (
+    GLOBAL_SIP_TEMPLATE_LABEL,
+    WAZO_API_URL, 
+)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -80,7 +83,7 @@ def get_master_global_template(admin_token: str) -> dict | None:
     Returns the full template object dict or None if not found.
     """
     logger.info("get_master_global_template start")
-    url = f"{WAZO_API_URL}/api/confd/1.1/endpoints/sip/templates?recurse=false"
+    url = f"{WAZO_API_URL}/api/confd/1.1/endpoints/sip/templates?recurse=false&search={GLOBAL_SIP_TEMPLATE_LABEL}"
     start = time.perf_counter()
     try:
         resp = requests.get(url, headers=_headers(admin_token), verify=False)

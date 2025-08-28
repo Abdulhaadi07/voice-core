@@ -34,10 +34,10 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_USE_SSL=False
-EMAIL_HOST_USER="gautam.chowdhury@enosisbd.com"
-EMAIL_HOST_PASSWORD="kajp bzzq qywm caqo"
-DEFAULT_FROM_EMAIL="gautam.chowdhury@enosisbd.com"
-EMAIL_REPLY_TO="gautam.chowdhury@enosisbd.com"
+EMAIL_HOST_USER="tempuserenosis@gmail.com"
+EMAIL_HOST_PASSWORD="kfxe dsux jtoe eiqe"
+DEFAULT_FROM_EMAIL="tempuserenosis@gmail.com"
+EMAIL_REPLY_TO="tempuserenosis@gmail.com"
 EMAIL_TIMEOUT=3
 DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 
@@ -50,4 +50,8 @@ EXTENSION_START_VALUE=100
 # Secret key for development
 DJANGO_SECRET_KEY=d87AIQ04mqqs4wBf7qkF7IRrbXa5Wk2Pa3IlyllFNCKjnKQBQMbhnaTTCL3zKsYE
 
+# Allowed hosts
 DJANGO_ALLOWED_HOSTS=35.169.30.120,core.netapse.com
+
+# Global SIP Template label 
+GLOBAL_SIP_TEMPLATE_LABEL = "global"

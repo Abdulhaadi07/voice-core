@@ -367,3 +367,6 @@ SIP_ENCRYPTION_KEY = os.getenv("SIP_ENCRYPTION_KEY")
 
 # Extension start value 
 EXTENSION_START_VALUE = os.getenv("EXTENSION_START_VALUE")
+
+# Global SIP Template label 
+GLOBAL_SIP_TEMPLATE_LABEL = os.getenv("GLOBAL_SIP_TEMPLATE_LABEL")
