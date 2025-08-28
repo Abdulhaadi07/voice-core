@@ -139,8 +139,8 @@ def assign_extension(
 	sip_password: str, 
 	user: User, 
 	context_name: str,
-	voicemail_pin: int,
-	voicemail_max_messages: int
+	voicemail_pin: int | None = None,
+	voicemail_max_messages: int | None = None
 	):
 	"""
 	Provision resources in Wazo for a user and persist an ExtensionAssignment.
@@ -214,18 +214,22 @@ def assign_extension(
 			raise RuntimeError("Failed to attach line to user")
 		assign_user_with_line_end_time = datetime.now()
 
-		# 7) Persist local assignment
-		voicemail_id, voicemail_pin, enabled_flag = create_user_voicemail(
-				wazo_user_id=str(user.wazo_user_id),
-				tenant_uuid=tenant_uuid,
-				admin_token=admin_token,
-				context_name=resolved_context_name,
-				email=user.email,
-				extension_number=str(extension_int),
-				pin=voicemail_pin,
-				name=user.name,
-				max_messages = voicemail_max_messages,
-			)
+		# 7) Create voicemail only if a PIN is provided
+		enabled_flag = False
+		if voicemail_pin is not None:
+			voicemail_id, voicemail_pin, enabled_flag = create_user_voicemail(
+					wazo_user_id=str(user.wazo_user_id),
+					tenant_uuid=tenant_uuid,
+					admin_token=admin_token,
+					context_name=resolved_context_name,
+					email=user.email,
+					extension_number=str(extension_int),
+					pin=voicemail_pin,
+					name=user.name,
+					max_messages = voicemail_max_messages if voicemail_max_messages is not None else 10,
+				)
+			user.config.voicemail_enabled = True
+			user.config.save()
 		create_user_voicemail_end_time = datetime.now()
 
 		# 8) Persist local assignment

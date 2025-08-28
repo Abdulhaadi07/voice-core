@@ -186,11 +186,11 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 		ser = AssignExtensionSerializer(data=request.data)
 		ser.is_valid(raise_exception=True)
 	    
-		extension_int = ser.validated_data["extension"]
-		sip_username = ser.validated_data["sip_username"]
-		sip_password = ser.validated_data["sip_password"]
-		voicemail_max_messages = ser.validated_data["voicemail_max_messages"]
-		voicemail_pin = ser.validated_data["voicemail_pin"]
+		extension_int = ser.validated_data.get("extension")
+		sip_username = ser.validated_data.get("sip_username")
+		sip_password = ser.validated_data.get("sip_password")
+		voicemail_max_messages = ser.validated_data.get("voicemail_max_messages")
+		voicemail_pin = ser.validated_data.get("voicemail_pin")
 
 		# Fetch user and tenant
 		try:
