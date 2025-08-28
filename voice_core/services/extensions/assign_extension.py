@@ -7,6 +7,7 @@ from typing import (
 from voice_core.tenant.models import Tenant
 from voice_core.users.models import (
 	ExtensionAssignment, 
+	VoicemailAssignment,
 	User,
 )
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
@@ -33,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 def _rollback_extension_assignment(
+	user: User,
 	admin_token: str | None,
 	tenant_uuid: str | None,
 	*,
@@ -117,24 +119,52 @@ def _rollback_extension_assignment(
 		if voicemail_id and user_uuid:
 			ok_to_deassociate_voicemail = deassociate_user_with_voicemail(admin_token, tenant_uuid, user_uuid)
 
-			if ok_to_deassociate_voicemail :
+			if ok_to_deassociate_voicemail:
 				ok = delete_voicemail(admin_token, tenant_uuid, voicemail_id)
-				if ok :
-					logger.info(f"Rollback: Successfull to delete voicemail voicemail_id={voicemail_id}")
+				if ok:
+					logger.info(f"Rollback: Successfully deleted voicemail voicemail_id={voicemail_id}")
 				else:
-					logger.error(f"Rollback: failed to delete voicemail voicemail_id={voicemail_id}")
+					logger.error(f"Rollback: Failed to delete voicemail voicemail_id={voicemail_id}")
 
-				logger.info(f"Rollback: Successfull to deassociate user with voicemail user_uuid={user_uuid}")
+				logger.info(f"Rollback: Successfully deassociated user from voicemail user_uuid={user_uuid}")
 			else:
-				logger.error(f"Rollback: failed to deassociate user with voicemail user uuid={user_uuid}")
+				logger.error(f"Rollback: Failed to deassociate user from voicemail user_uuid={user_uuid}")
 	except Exception as exc:
-		logger.error(f"Rollback: exception at delete voicemail error={exc}", exc_info=True)
+		logger.error(f"Rollback: Exception while deleting voicemail error={exc}", exc_info=True)
 
-	logger.info("Rollback: Successfully completed at extension assignment")
+	try:
+		if extension_id and user:
+			ExtensionAssignment.objects.filter(
+				user=user,
+				extension=str(extension_id)
+			).delete()
+	except Exception as exc:
+		logger.error(f"Rollback: Failed to delete ExtensionAssignment error={exc}", exc_info=True)
+
+	try:
+		if voicemail_id and user:
+			VoicemailAssignment.objects.filter(
+				user=user,
+				voicemail_id=voicemail_id
+			).delete()
+	except Exception as exc:
+		logger.error(f"Rollback: Failed to delete VoicemailAssignment error={exc}", exc_info=True)
+
+	try:
+		# Reset user.config flags
+		if user:
+			user.config.extension_enabled = False
+			user.config.voicemail_enabled = False
+			user.config.save()
+	except Exception as exc:
+		logger.error(f"Rollback: Failed to reset user.config flags error={exc}", exc_info=True)
+
+	logger.info("Rollback: Local DB rollback completed.")
+
 
 def assign_extension(
 	tenant: Tenant, 
-	extension_int: int, 
+	extension_num: int, 
 	sip_username: str, 
 	sip_password: str, 
 	user: User, 
@@ -182,10 +212,10 @@ def assign_extension(
 		create_line_end_time = datetime.now()
 
 		# 2) Create extension in context (exten is the number)
-		extension_id = create_extension(admin_token, tenant_uuid, resolved_context_name, extension_int)
+		extension_id = create_extension(admin_token, tenant_uuid, resolved_context_name, extension_num)
 		create_extension_end_time = datetime.now()
 		# 3) Create SIP endpoint
-		sip_label = f"sip-E-{extension_int}-L-{line_id}"
+		sip_label = f"sip-E-{extension_num}-L-{line_id}"
 		sip_name = sip_label
 		sip_uuid, _, _ = create_sip_endpoint(
 			admin_token=admin_token,
@@ -223,29 +253,41 @@ def assign_extension(
 					admin_token=admin_token,
 					context_name=resolved_context_name,
 					email=user.email,
-					extension_number=str(extension_int),
+					extension_number=str(extension_num),
 					pin=voicemail_pin,
 					name=user.name,
 					max_messages = voicemail_max_messages if voicemail_max_messages is not None else 10,
 				)
-			user.config.voicemail_enabled = True
-			user.config.save()
 		create_user_voicemail_end_time = datetime.now()
 
 		# 8) Persist local assignment
 		assignment = ExtensionAssignment.objects.create(
-			extension=str(extension_int),
+			extension=str(extension_num),
 			sip_username=sip_username,
 			sip_password=sip_password,
 			user=user,
 			wazo_line_id=line_id,
 			context_name=context_name,
-			voicemail_id = voicemail_id,
-			voicemail_pin = voicemail_pin,
-			voicemail_enabled = enabled_flag
 		)
+
+		# Update user config to enable extension 
+		user.config.extension_enabled = True
+		user.config.save()	
+
+		# Persist voicemail assignment
+		if enabled_flag:
+			user.config.voicemail_enabled = True
+			user.config.save()
+
+			VoicemailAssignment.objects.create(
+				voicemail_id=voicemail_id,
+				voicemail_pin=voicemail_pin,
+				user=user,
+			)	
+		save_assignment_end_time = datetime.now()
+
 		logger.info(
-			f"Extension assigned | tenant_id={tenant.id} user_id={user.id} line_id={line_id} extension={extension_int} context='{context_name}'"
+			f"Extension assigned | tenant_id={tenant.id} user_id={user.id} line_id={line_id} extension={extension_num} context='{context_name}'"
 		)
 		
 		# Step durations
@@ -256,9 +298,10 @@ def assign_extension(
 		assign_line_to_extension_time = (assign_line_with_extension_end_time - assign_line_with_sip_endpoint_end_time).total_seconds()
 		assign_user_to_line_time = (assign_user_with_line_end_time - assign_line_with_extension_end_time).total_seconds()
 		voicemail_creation_time = (create_user_voicemail_end_time - assign_user_with_line_end_time).total_seconds()
+		save_assignment_time = (save_assignment_end_time - create_user_voicemail_end_time).total_seconds()
 
 		# Total duration
-		total_time = (create_user_voicemail_end_time - create_line_start_time).total_seconds()
+		total_time = (save_assignment_end_time - create_line_start_time).total_seconds()
 
 		logger.info(
 			f"Extension assignment completed successfully. "
@@ -269,6 +312,7 @@ def assign_extension(
 			f"Assign Line Extension: {assign_line_to_extension_time:.3f}s, "
 			f"Assign User Line: {assign_user_to_line_time:.3f}s, "
 			f"Voicemail Creation: {voicemail_creation_time:.3f}s, "
+			f"Save to Db: {save_assignment_time:.3f}s, "
 			f"Total: {total_time:.3f}s"
 		)
 		return assignment
@@ -281,6 +325,7 @@ def assign_extension(
 		# Attempt best-effort Rollback
 		try:
 			_rollback_extension_assignment(
+				user = user,
 				admin_token=admin_token,
 				tenant_uuid=tenant_uuid,
 				line_id=line_id,
@@ -288,6 +333,7 @@ def assign_extension(
 				extension_id=extension_id,
 				user_uuid=user_uuid,
 				voicemail_id=voicemail_id,
+				
 			)
 		except Exception as Rollback_exc:
 			logger.error(f"Rollback encountered an error: {Rollback_exc}", exc_info=True)

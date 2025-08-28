@@ -116,20 +116,34 @@ class ExtensionAssignment(TimeStampedModel):
     wazo_line_id = models.IntegerField()  
     context_name = models.CharField(max_length=250) 
 
-    voicemail_id = models.IntegerField(null=True,blank=True)
-    voicemail_pin = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        help_text="Numeric PIN for accessing voicemail"
-    )
-    voicemail_enabled = models.BooleanField(
-        default=True,
-        help_text="Enable or disable voicemail for this extension"
-    )
-
     class Meta:
         verbose_name = "Extension Assignment"
         verbose_name_plural = "Extension Assignments"
 
     def __str__(self):
         return f"{self.extension} ({self.user.email})"
+
+class VoicemailAssignment(TimeStampedModel):
+    """Represents the assignment of a voicemail to a user."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="voicemail"
+    )
+
+    voicemail_id = models.IntegerField(null=True,blank=True)
+    voicemail_pin = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Numeric PIN for accessing voicemail"
+    )
+
+    class Meta:
+        verbose_name = "Voicemail Assignment"
+        verbose_name_plural = "Voicemail Assignments"
+
+    def __str__(self):
+        return f"{self.voicemail_id} ({self.user.email})"
+
+

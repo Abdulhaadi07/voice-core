@@ -186,7 +186,7 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 		ser = AssignExtensionSerializer(data=request.data)
 		ser.is_valid(raise_exception=True)
 	    
-		extension_int = ser.validated_data.get("extension")
+		extension_num = ser.validated_data.get("extension")
 		sip_username = ser.validated_data.get("sip_username")
 		sip_password = ser.validated_data.get("sip_password")
 		voicemail_max_messages = ser.validated_data.get("voicemail_max_messages")
@@ -234,13 +234,13 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 					break
 		logger.info(f"available_by_context: {available_in_ctx}, {available_by_context}")
 
-		if not available_in_ctx or extension_int not in available_in_ctx:
-			return Response({"detail": f"Extension {extension_int} not available in context '{context_name}'"}, status=status.HTTP_400_BAD_REQUEST)
+		if not available_in_ctx or extension_num not in available_in_ctx:
+			return Response({"detail": f"Extension {extension_num} not available in context '{context_name}'"}, status=status.HTTP_400_BAD_REQUEST)
 		
 		# Uniqueness checks
-		if ExtensionAssignment.objects.filter(extension=str(extension_int), context_name=context_name).exists():
+		if ExtensionAssignment.objects.filter(extension=str(extension_num), context_name=context_name).exists():
 			return Response(
-				{"detail": f"Extension {extension_int} already assigned in context '{context_name}'"},
+				{"detail": f"Extension {extension_num} already assigned in context '{context_name}'"},
 				status=status.HTTP_409_CONFLICT
 			)
 
@@ -250,11 +250,11 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 				{"detail": f"SIP username '{sip_username}' already in use in context '{context_name}'"},
 				status=status.HTTP_409_CONFLICT
 			)
-		logger.info(f"{context_name} ,,, {extension_int},,,,{user.name} ,,, {user.id}")
+		logger.info(f"{context_name} ,,, {extension_num},,,,{user.name} ,,, {user.id}")
 
 		assignment = assign_extension(
 			tenant=tenant,
-			extension_int=extension_int,
+			extension_num=extension_num,
 			sip_username=sip_username,
 			sip_password=sip_password,
 			user=user,
@@ -263,9 +263,7 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 			voicemail_max_messages = voicemail_max_messages,
 		)
 
-		# Update user config to enable extension 
-		user.config.extension_enabled = True
-		user.config.save()
+		
 
 		logger.info(f"Assigned extension {assignment.extension} to user_id={user.id} in context '{context_name}'")
 		return Response(
