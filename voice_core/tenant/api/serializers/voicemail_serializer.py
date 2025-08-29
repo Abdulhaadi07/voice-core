@@ -42,3 +42,26 @@ class VoicemailSerializer(serializers.ModelSerializer):
         model = VoicemailAssignment
         fields = ["id", "voicemail_id", "voicemail_pin", "user"]
         read_only_fields = ["id"]
+
+
+
+class RecordingsSerializer(serializers.Serializer):
+    message_id = serializers.CharField()
+    caller = serializers.CharField()
+    duration = serializers.IntegerField()
+    timestamp = serializers.DateTimeField()
+
+
+class RecordingsFolderSerializer(serializers.Serializer):
+    folder_id = serializers.IntegerField()
+    folder_name = serializers.CharField()
+    messages_count = serializers.IntegerField()
+
+class UpdateVoicemailSerializer(serializers.Serializer):
+    folder_id = serializers.IntegerField(default=2)  # Default "Old" folder
+
+
+class AllVoicemailSerializer(serializers.Serializer):
+    voicemail_id = serializers.IntegerField()
+    total_messages = serializers.IntegerField()
+    folders = RecordingsFolderSerializer(many=True)

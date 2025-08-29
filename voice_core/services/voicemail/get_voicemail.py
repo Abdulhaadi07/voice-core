@@ -1,0 +1,201 @@
+from datetime import datetime
+from typing import (
+	Dict,
+	List,
+)
+from rest_framework.exceptions import ValidationError
+
+from voice_core.tenant.models import Tenant
+from voice_core.users.models import (
+	ExtensionAssignment, 
+	VoicemailAssignment,
+	User,
+)
+from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
+from voice_core.services.wazo_helpers.wazo_voicemail import (
+	fetch_voicemail_all_recordings,
+	fetch_voicemail_recordings_by_folder,
+    fetch_voicemail_recording,
+)
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+def get_voicemail_all_recordings(
+    tenant,
+    user,
+    voicemail_id: int,
+):
+    """
+    Fetch all voicemail recordings for a user from Wazo and return metadata.
+    """
+
+    admin_token = None
+    tenant_uuid = None
+
+    try:
+        # Ensure tenant has Wazo tenant UUID
+        if not tenant.wazo_tenant_uuid:
+            raise ValidationError("Tenant is missing wazo_tenant_uuid")
+        tenant_uuid = str(tenant.wazo_tenant_uuid)
+
+        # Ensure user has a voicemail assigned
+        try:
+            assignment = VoicemailAssignment.objects.get(user=user, voicemail_id=voicemail_id)
+        except VoicemailAssignment.DoesNotExist:
+            raise ValidationError("Voicemail not assigned to this user.")
+
+        admin_token = get_wazo_admin_token()
+
+        logger.info(
+            f"Fetching voicemail recordings | tenant_id={tenant.id}, user_id={user.id}, voicemail_id={voicemail_id}"
+        )
+        start_time = datetime.now()
+
+        # Call Wazo API to fetch voicemail recordings
+        all_voicemails = fetch_voicemail_all_recordings(
+            voicemail_id=voicemail_id,
+            admin_token=admin_token,
+        )
+
+        if all_voicemails is None:
+            return None
+
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+
+        logger.info(
+            f"Fetched {len(all_voicemails)} voicemail recordings in {duration:.3f}s "
+            f"| tenant_id={tenant.id}, user_id={user.id}, voicemail_id={voicemail_id}"
+        )
+
+        return all_voicemails
+
+    except Exception as e:
+        logger.error(
+            f"Error fetching voicemail recordings | tenant_id={tenant.id}, user_id={getattr(user, 'id', 'unknown')}, voicemail_id={voicemail_id}: {e}",
+            exc_info=True,
+        )
+        raise
+
+
+
+# def get_voicemail_recordings_by_folder,
+# def get_voicemail_recording,
+
+def get_voicemail_recordings_by_folder(
+    tenant,
+    user,
+    voicemail_id: int,
+    folder_id: int,
+):
+    """
+    Fetch voicemail recordings for a user from a specific folder (e.g., Inbox, Old, Deleted).
+    """
+    admin_token = None
+    tenant_uuid = None
+
+    try:
+        if not tenant.wazo_tenant_uuid:
+            raise ValidationError("Tenant is missing wazo_tenant_uuid")
+        tenant_uuid = str(tenant.wazo_tenant_uuid)
+
+        try:
+            assignment = VoicemailAssignment.objects.get(user=user, voicemail_id=voicemail_id)
+        except VoicemailAssignment.DoesNotExist:
+            raise ValidationError("Voicemail not assigned to this user.")
+
+        admin_token = get_wazo_admin_token()
+
+        logger.info(
+            f"Fetching voicemail recordings by folder | tenant_id={tenant.id}, user_id={user.id}, "
+            f"voicemail_id={voicemail_id}, folder_id={folder_id}"
+        )
+        start_time = datetime.now()
+
+        recordings = fetch_voicemail_recordings_by_folder(
+            voicemail_id=voicemail_id,
+            folder_id=folder_id,
+            admin_token=admin_token,
+        )
+
+        if recordings is None:
+            return None
+
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+
+        logger.info(
+            f"Fetched {len(recordings)} recordings from folder {folder_id} in {duration:.3f}s "
+            f"| tenant_id={tenant.id}, user_id={user.id}, voicemail_id={voicemail_id}"
+        )
+
+        return recordings
+
+    except Exception as e:
+        logger.error(
+            f"Error fetching voicemail recordings by folder | tenant_id={tenant.id}, "
+            f"user_id={getattr(user, 'id', 'unknown')}, voicemail_id={voicemail_id}, folder_id={folder_id}: {e}",
+            exc_info=True,
+        )
+        raise
+
+
+
+def get_voicemail_recording(
+    tenant,
+    user,
+    voicemail_id: int,
+    message_id: str,
+):
+    """
+    Fetch a specific voicemail message audio (binary content) for a user.
+    Returns a tuple: (binary_content, content_type)
+    """
+    admin_token = None
+    tenant_uuid = None
+
+    try:
+        if not tenant.wazo_tenant_uuid:
+            raise ValidationError("Tenant is missing wazo_tenant_uuid")
+        tenant_uuid = str(tenant.wazo_tenant_uuid)
+
+        try:
+            assignment = VoicemailAssignment.objects.get(user=user, voicemail_id=voicemail_id)
+        except VoicemailAssignment.DoesNotExist:
+            raise ValidationError("Voicemail not assigned to this user.")
+
+        admin_token = get_wazo_admin_token()
+
+        logger.info(
+            f"Fetching voicemail recording | tenant_id={tenant.id}, user_id={user.id}, "
+            f"voicemail_id={voicemail_id}, message_id={message_id}"
+        )
+        start_time = datetime.now()
+
+        recording, content_type = fetch_voicemail_recording(
+            voicemail_id=voicemail_id,
+            message_id=message_id,
+            admin_token=admin_token,
+        )
+
+        if recording is None:
+            return None, None
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+
+        logger.info(
+            f"Fetched voicemail recording in {duration:.3f}s | tenant_id={tenant.id}, "
+            f"user_id={user.id}, voicemail_id={voicemail_id}, message_id={message_id}"
+        )
+
+        return recording, content_type
+
+    except Exception as e:
+        logger.error(
+            f"Error fetching voicemail recording | tenant_id={tenant.id}, "
+            f"user_id={getattr(user, 'id', 'unknown')}, voicemail_id={voicemail_id}, message_id={message_id}: {e}",
+            exc_info=True,
+        )
+        raise
