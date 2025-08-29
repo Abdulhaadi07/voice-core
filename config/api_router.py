@@ -3,9 +3,10 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from rest_framework.routers import SimpleRouter
 
-from voice_core.tenant.api.views import TenantViewSet,ExtensionViewSet
 from voice_core.users.api.views.tenant_user_views import TenantUserViewSet
 from voice_core.users.api.views.user_views import UserViewSet
+from voice_core.tenant.api.views.tenant_views import TenantViewSet
+from voice_core.tenant.api.views.extension_views import ExtensionViewSet
 
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()

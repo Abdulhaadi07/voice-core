@@ -16,14 +16,3 @@ class TenantSerializer(serializers.ModelSerializer):
             "wazo_tenant_uuid",
         ]
         read_only_fields = ["id", "wazo_tenant_uuid"]
-
-
-class AvailableExtensionsSerializer(serializers.Serializer):
-    contexts = serializers.DictField(
-        child=serializers.ListField(
-            child=serializers.IntegerField(),
-            help_text="List of available extension numbers for this context"
-        ),
-        help_text="Dictionary mapping context names to lists of available extensions"
-    )
-    

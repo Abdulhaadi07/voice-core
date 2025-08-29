@@ -55,3 +55,12 @@ DJANGO_ALLOWED_HOSTS=18.212.50.132,core.netapse.com
 
 # Global SIP Template label 
 GLOBAL_SIP_TEMPLATE_LABEL = "global"
+
+# voicemail MAX messages 
+VOICEMAIL_LIMIT_MAX_MESSAGES = 1000 
+
+# voicemail MAX messages default 
+VOICEMAIL_DEFAULT_MAX_MESSAGES = 10
+
+# voicemail PIN limit 
+VOICEMAIL_PIN_MIN_LENGTH = 9999 
