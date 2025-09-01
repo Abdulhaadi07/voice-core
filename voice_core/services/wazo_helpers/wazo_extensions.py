@@ -3,10 +3,11 @@ import time
 from typing import Tuple
 from config.settings.base import WAZO_API_URL
 
+from voice_core.services.wazo_helpers.wazo_sip_template import get_sip_global_template
+
 import logging
 logger = logging.getLogger(__name__)
 
-from voice_core.services.wazo_helpers.wazo_sip_template import get_sip_global_template
 
 def _truncate(text: str, limit: int = 500) -> str:
     if text is None:

@@ -322,7 +322,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Voice Core API",
     "DESCRIPTION": "Documentation of API endpoints of Voice Core",
     "VERSION": "1.0.0",
-    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
     "SCHEMA_PATH_PREFIX": "/api/",
 }
 # Your stuff...
@@ -370,3 +370,12 @@ EXTENSION_START_VALUE = os.getenv("EXTENSION_START_VALUE")
 
 # Global SIP Template label 
 GLOBAL_SIP_TEMPLATE_LABEL = os.getenv("GLOBAL_SIP_TEMPLATE_LABEL")
+
+# Voice Mail Limit Max Messages 
+VOICEMAIL_LIMIT_MAX_MESSAGES = os.getenv("VOICEMAIL_LIMIT_MAX_MESSAGES")
+
+# Voice Mail Default Max Messages 
+VOICEMAIL_DEFAULT_MAX_MESSAGES = os.getenv("VOICEMAIL_DEFAULT_MAX_MESSAGES")
+
+# Voice Mail Pin Limit 
+VOICEMAIL_PIN_MIN_LENGTH = os.getenv("VOICEMAIL_PIN_MIN_LENGTH")

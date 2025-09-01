@@ -1,7 +1,5 @@
-from django.core import serializers
 import requests
-from typing import Tuple, List
-import uuid
+from typing import List
 from config.settings.base import (
     EXTENSION_START_VALUE,
     WAZO_API_URL,

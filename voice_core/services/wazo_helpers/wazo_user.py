@@ -81,7 +81,7 @@ def generate_valid_password(length=12):
 
 def delete_wazo_user(wazo_user_id: uuid, admin_token: str):
     wazo_api_url = WAZO_API_URL
-    url = f"{wazo_api_url}/api/confd/1.1/users{wazo_user_id}"
+    url = f"{wazo_api_url}/api/confd/1.1/users/{wazo_user_id}"
     headers = {
         "Content-Type": "application/json",
         "X-Auth-Token": admin_token,

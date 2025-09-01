@@ -1,13 +1,9 @@
 from __future__ import annotations
-
 import boto3
 from botocore.exceptions import ClientError
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import BaseBackend
-from django.contrib.auth.hashers import make_password
-from django.db import transaction
 from django.conf import settings
-from django.contrib.auth.backends import ModelBackend
 from django.core.exceptions import PermissionDenied
 from voice_core.users.utils import get_secret_hash
 

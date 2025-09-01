@@ -14,6 +14,11 @@ class DummyUser:
     name = "John"
     email = "john@example.com"
     wazo_user_id = "user-uuid"
+    def __init__(self):
+        class _Cfg:
+            voicemail_enabled = False
+            def save(self): pass
+        self.config = _Cfg()
 
 @patch("voice_core.services.extensions.assign_extension.ExtensionAssignment")
 @patch("voice_core.services.extensions.assign_extension.create_user_voicemail", return_value=("vmid", "1234", True))

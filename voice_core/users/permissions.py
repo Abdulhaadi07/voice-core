@@ -1,5 +1,4 @@
-from django.contrib.auth.models import Group
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import BasePermission
 from rest_framework.exceptions import PermissionDenied
 
 import logging
@@ -30,11 +29,11 @@ class IsPlatformAdminOrTenantAdmin(BasePermission):
         # For tenant-scoped views, validate tenant
         tenant_id = view.kwargs.get("tenant_id")
         if tenant_id and str(request.user.tenant_id) != str(tenant_id):
-            logger.warning(f"User '{request.user}' has no access to this tenant")
-            raise PermissionDenied(f"User '{request.user}' has no access to this tenant")
+            logger.warning(f"User '{request.user}': not authenticated")
+            raise PermissionDenied(f"Permission denied: User not authenticated")
 
         if getattr(request.user, "tenant_role", None) == "admin":
-            logger.info(f"User '{request.user}' has admin access to this tenant")
+            logger.info(f"Permission denied: User not authenticated")
             return True
-        logger.warning(f"User '{request.user}' has no access to this tenant")
-        raise PermissionDenied(f"User '{request.user}' has no access to this tenant")
+        logger.warning(f"Permission denied: User not authenticated")
+        raise PermissionDenied(f"Permission denied: User not authenticated")

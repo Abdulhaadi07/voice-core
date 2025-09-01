@@ -3,7 +3,6 @@ from datetime import datetime
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import UserManager as DjangoUserManager
-
 from rest_framework.exceptions import ValidationError, APIException
 
 from voice_core.users.registration.cognito import (
@@ -31,9 +30,12 @@ class UserManager(DjangoUserManager["User"]):
     """Custom manager for the User model."""
 
     def _save_user(self, email: str, password: str | None, **extra_fields):
+        from voice_core.users.models import UserConfig
         user = self.model(email=email, **extra_fields)
         user.password = make_password(password)
         user.save(using=self._db)
+        UserConfig.objects.create(user=user)
+        user.config.save()
         user.refresh_from_db()
         return user
 

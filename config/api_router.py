@@ -3,9 +3,11 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from rest_framework.routers import SimpleRouter
 
-from voice_core.tenant.api.views import TenantViewSet,ExtensionViewSet
 from voice_core.users.api.views.tenant_user_views import TenantUserViewSet
 from voice_core.users.api.views.user_views import UserViewSet
+from voice_core.tenant.api.views.tenant_views import TenantViewSet
+from voice_core.tenant.api.views.extension_views import ExtensionViewSet
+from voice_core.tenant.api.views.voicemail_views import VoicemailViewSet
 
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()
@@ -45,5 +47,55 @@ extension_management_urls = [
     ),
 ]
 
+# voicemail-management
+voicemail_management_urls = [
+    # Voicemail config: GET/POST
+    path(
+        "tenants/<int:tenant_id>/users/<int:user_id>/voicemail/config",
+        VoicemailViewSet.as_view({
+            "get": "get_voicemail",
+            "post": "set_voicemail_configure",
+        }),
+        name="tenant-voicemail",
+    ),
+
+    # Get all recordings
+    path(
+        "tenants/<int:tenant_id>/users/<int:user_id>/voicemail/messages",
+        VoicemailViewSet.as_view({
+            "get": "get_all_voicemail"
+        }),
+        name="tenant-voicemail-recordings",
+    ),
+
+    # Get recordings by folder
+    path(
+        "tenants/<int:tenant_id>/users/<int:user_id>/voicemail/messages/folder/<int:folder_id>/",
+        VoicemailViewSet.as_view({
+            "get": "get_voicemail_by_folder"
+        }),
+        name="tenant-voicemail-recordings-folder",
+    ),
+
+    # Set message as read
+    path(
+        "tenants/<int:tenant_id>/users/<int:user_id>/voicemail/messages/<str:message_id>/read/",
+        VoicemailViewSet.as_view({
+            "put": "set_message_as_read"
+        }),
+        name="tenant-voicemail-message-read",
+    ),
+
+    # Play/fetch a message recording
+    path(
+        "tenants/<int:tenant_id>/users/<int:user_id>/voicemail/recordings/messages/<str:message_id>/play/",
+        VoicemailViewSet.as_view({
+            "get": "get_message_recordings"
+        }),
+        name="tenant-voicemail-message-play",
+    ),
+]
+
+
 # combine all sets; do NOT overwrite previous urlpatterns
-urlpatterns = router.urls + tenant_user_urls + extension_management_urls
+urlpatterns = router.urls + tenant_user_urls + extension_management_urls + voicemail_management_urls

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 @shared_task()
 def get_users_count():
     """A pointless Celery task to demonstrate usage."""
-    print("UserCount")
+    logger.info("UserCount")
     from .models import User
     return User.objects.count()
 
