@@ -59,8 +59,8 @@ services:
     volumes:
       - voice_core_dev_traefik:/etc/traefik/acme
     ports:
-      - '0.0.0.0:80:80'
-      - '0.0.0.0:5555:5555'
+      - '80:80'
+      - '5555:5555'
     restart: unless-stopped
 
   celeryworker:
