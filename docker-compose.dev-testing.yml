@@ -19,7 +19,7 @@ services:
       - redis
     volumes:
       - .:/app:z
-      - ~/.aws:/aws:ro
+      - ~/.aws:/root/.aws:ro  # ← Mount to standard AWS location
     env_file:
       - ./.envs/.dev-testing/.django
       - ./.envs/.dev-testing/.postgres
