@@ -1,5 +1,7 @@
 log:
-  level: INFO
+  level: DEBUG
+
+accessLogs: {}
 
 entryPoints:
   web:
@@ -16,7 +18,7 @@ http:
   routers:
     # HTTP-only router (no TLS)
     web-router:
-      rule: 'Host(`localhost`) || Host(`127.0.0.1`) || HostRegexp(`{host:.+}`)'
+      rule: '(Host(`18.212.50.132`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/`)'
       entryPoints:
         - web
       middlewares:
@@ -25,7 +27,7 @@ http:
       # NO TLS configuration
 
     flower-router:
-      rule: 'Host(`localhost`) || Host(`127.0.0.1`) || HostRegexp(`{host:.+}`)'
+      rule: '(Host(`18.212.50.132`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/flower`)'
       entryPoints:
         - flower
       service: flower
