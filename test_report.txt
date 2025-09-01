@@ -1,0 +1,1150 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.0, pluggy-1.6.0
+django: version: 5.1.10, settings: config.settings.local (from ini)
+rootdir: /app
+configfile: pytest.ini
+plugins: anyio-4.10.0, Faker-37.5.3, django-4.11.1, sugar-1.0.0
+collected 132 items
+
+tests/api/test_openapi.py::test_api_docs_accessible_by_admin SKIPPED     [  0%]
+tests/api/test_openapi.py::test_api_docs_not_accessible_by_anonymous_users SKIPPED [  1%]
+tests/api/test_openapi.py::test_api_schema_generated_successfully SKIPPED [  2%]
+tests/tenant/api/test_views.py::test_tenant_list_permissions 
+-------------------------------- live log call ---------------------------------
+WARNING  django.request:log.py:253 Forbidden: /api/tenants/
+WARNING  django.request:log.py:253 Forbidden: /api/tenants/
+PASSED                                                                   [  3%]
+tests/tenant/api/test_views.py::test_tenant_list_and_search_filter 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.tenant.api.views:views.py:50 Filtering tenants with search='acme'
+PASSED                                                                   [  3%]
+tests/tenant/api/test_views.py::test_tenant_create_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.tenant.api.views:views.py:66 Creating new Tenant | Name: Gamma | Domain: gamma.io | Max Users: 25 | Status: active | Requested by: None
+INFO     voice_core.tenant.api.views:views.py:96 Tenant created successfully: id=6, name=Gamma
+PASSED                                                                   [  4%]
+tests/tenant/api/test_views.py::test_tenant_create_conflict_when_preexists 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.tenant.api.views:views.py:66 Creating new Tenant | Name: Already | Domain: already.io | Max Users: 5 | Status: active | Requested by: None
+WARNING  voice_core.tenant.api.views:views.py:88 Tenant already exists in Wazo: name=Already
+WARNING  django.request:log.py:253 Conflict: /api/tenants/
+PASSED                                                                   [  5%]
+tests/tenant/api/test_views.py::test_tenant_create_validation_error_conflict 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.tenant.api.views:views.py:99 ValidationError creating new Tenant: {'name': [ErrorDetail(string='tenant with this name already exists.', code='unique')]} | Name: Dup | Domain: dup2.io | Max Users: None | Requested by: None
+WARNING  django.request:log.py:253 Conflict: /api/tenants/
+PASSED                                                                   [  6%]
+tests/tenant/api/test_views.py::test_tenant_partial_update_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.tenant.api.views:views.py:111 Updating Tenant (ID: 12) | Current: Name='Up', Domain='up.io', Max Users=10, Status='active' | Requested by: None
+INFO     voice_core.tenant.api.views:views.py:117 Updating Tenant (ID: 12) | New values: {'max_users': 99}
+PASSED                                                                   [  6%]
+tests/tenant/api/test_views.py::test_tenant_partial_update_generic_error_returns_400 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.tenant.api.views:views.py:111 Updating Tenant (ID: 14) | Current: Name='Err', Domain='err.io', Max Users=10, Status='active' | Requested by: None
+INFO     voice_core.tenant.api.views:views.py:117 Updating Tenant (ID: 14) | New values: {'max_users': 77}
+ERROR    voice_core.tenant.api.views:views.py:137 Error updating Tenant 14: boom
+WARNING  django.request:log.py:253 Bad Request: /api/tenants/14/
+PASSED                                                                   [  7%]
+tests/tenant/api/test_views.py::test_extensions_available_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User ncurry@example.org is requesting available on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'ncurry@example.org' has platform admin access
+INFO     voice_core.tenant.api.views:views.py:157 Getting available extensions for tenant: 1
+PASSED                                                                   [  8%]
+tests/tenant/api/test_views.py::test_extensions_available_internal_error_500 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User mmaldonado@example.com is requesting available on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'mmaldonado@example.com' has platform admin access
+INFO     voice_core.tenant.api.views:views.py:157 Getting available extensions for tenant: 1
+ERROR    voice_core.tenant.api.views:views.py:168 Error getting available extensions for tenant 1: fail
+ERROR    django.request:log.py:253 Internal Server Error: /api/tenants/1/extensions/available/
+PASSED                                                                   [  9%]
+tests/tenant/api/test_views.py::test_assign_404_when_user_not_found 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User reginald74@example.net is requesting assign on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'reginald74@example.net' has platform admin access
+INFO     voice_core.tenant.api.views:views.py:175 Assign extension requested tenant_id=1, user_id=999
+WARNING  django.request:log.py:253 Not Found: /api/tenants/1/users/999/assign/
+PASSED                                                                   [  9%]
+tests/tenant/api/test_views.py::test_assign_400_when_no_contexts 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User jacobrobinson@example.com is requesting assign on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'jacobrobinson@example.com' has platform admin access
+INFO     voice_core.tenant.api.views:views.py:175 Assign extension requested tenant_id=1, user_id=2
+WARNING  django.request:log.py:253 Bad Request: /api/tenants/1/users/2/assign/
+PASSED                                                                   [ 10%]
+tests/tenant/api/test_views.py::test_assign_400_when_extension_not_available 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User dbrown@example.net is requesting assign on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'dbrown@example.net' has platform admin access
+INFO     voice_core.tenant.api.views:views.py:175 Assign extension requested tenant_id=1, user_id=2
+INFO     voice_core.tenant.api.views:views.py:235 available_by_context: [101], {'ctxA': [101]}
+WARNING  django.request:log.py:253 Bad Request: /api/tenants/1/users/2/assign/
+PASSED                                                                   [ 11%]
+tests/tenant/api/test_views.py::test_assign_409_when_extension_already_assigned 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User lopezamanda@example.net is requesting assign on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'lopezamanda@example.net' has platform admin access
+INFO     voice_core.tenant.api.views:views.py:175 Assign extension requested tenant_id=1, user_id=2
+INFO     voice_core.tenant.api.views:views.py:235 available_by_context: [100], {'ctxA': [100]}
+WARNING  django.request:log.py:253 Conflict: /api/tenants/1/users/2/assign/
+PASSED                                                                   [ 12%]
+tests/tenant/api/test_views.py::test_assign_success_201 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User gtapia@example.com is requesting assign on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'gtapia@example.com' has platform admin access
+INFO     voice_core.tenant.api.views:views.py:175 Assign extension requested tenant_id=1, user_id=2
+INFO     voice_core.tenant.api.views:views.py:235 available_by_context: [100], {'ctxA': [100]}
+INFO     voice_core.tenant.api.views:views.py:253 ctxA ,,, 100,,,,<MagicMock name='User.objects.select_related().get().name' id='140184781672128'> ,,, 2
+INFO     voice_core.tenant.api.views:views.py:266 Assigned extension 100 to user_id=2 in context 'ctxA'
+PASSED                                                                   [ 12%]
+tests/tenant/api/test_views.py::test_assign_409_when_sip_username_in_use 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User victoriajohnson@example.org is requesting assign on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'victoriajohnson@example.org' has platform admin access
+INFO     voice_core.tenant.api.views:views.py:175 Assign extension requested tenant_id=1, user_id=2
+INFO     voice_core.tenant.api.views:views.py:235 available_by_context: [100], {'ctxA': [100]}
+WARNING  django.request:log.py:253 Conflict: /api/tenants/1/users/2/assign/
+PASSED                                                                   [ 13%]
+tests/users/api/views/test_tenant_user_views.py::test_list_permissions 
+-------------------------------- live log call ---------------------------------
+WARNING  voice_core.users.permissions:permissions.py:20 Permission denied: User not authenticated
+WARNING  django.request:log.py:253 Forbidden: /api/tenants/23/users/
+INFO     voice_core.users.permissions:permissions.py:23 User adrianchen@example.net is requesting list on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'adrianchen@example.net' has platform admin access
+PASSED                                                                   [ 14%]
+tests/users/api/views/test_tenant_user_views.py::test_list_success_with_mocked_serializer 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User floresbonnie@example.org is requesting list on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'floresbonnie@example.org' has platform admin access
+PASSED                                                                   [ 15%]
+tests/users/api/views/test_tenant_user_views.py::test_create_success_with_mocked_serializer 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User yramirez@example.com is requesting create on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'yramirez@example.com' has platform admin access
+INFO     voice_core.users.api.views.tenant_user_views:tenant_user_views.py:78 Tenant user created. Tenant_id: 25, user_id: 10, email: new@example.com, tenant_role: agent
+PASSED                                                                   [ 15%]
+tests/users/api/views/test_tenant_user_views.py::test_retrieve_success_with_mocks 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User amanda61@example.net is requesting retrieve on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'amanda61@example.net' has platform admin access
+INFO     voice_core.users.api.views.tenant_user_views:tenant_user_views.py:103 Tenant user retrieved
+PASSED                                                                   [ 16%]
+tests/users/api/views/test_tenant_user_views.py::test_partial_update_success_with_mocks 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User lisa39@example.com is requesting partial_update on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'lisa39@example.com' has platform admin access
+INFO     voice_core.users.api.views.tenant_user_views:tenant_user_views.py:116 Partial update tenant user start: tenant_id=27, user_id=101
+INFO     voice_core.users.api.views.tenant_user_views:tenant_user_views.py:125 Tenant user updated
+PASSED                                                                   [ 17%]
+tests/users/api/views/test_tenant_user_views.py::test_list_search_filters_by_email_and_name 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.permissions:permissions.py:23 User melissawashington@example.org is requesting list on Tenant
+INFO     voice_core.users.permissions:permissions.py:27 User 'melissawashington@example.org' has platform admin access
+INFO     voice_core.users.api.views.tenant_user_views:tenant_user_views.py:61 Filtering users for tenant=28 with search='alice'
+PASSED                                                                   [ 18%]
+tests/users/test_admin.py::TestUserAdmin::test_changelist SKIPPED (S...) [ 18%]
+tests/users/test_admin.py::TestUserAdmin::test_search SKIPPED (Skipp...) [ 19%]
+tests/users/test_admin.py::TestUserAdmin::test_add SKIPPED (Skipping...) [ 20%]
+tests/users/test_admin.py::TestUserAdmin::test_view_user SKIPPED (Sk...) [ 21%]
+tests/users/test_managers.py::TestUserManager::test_create_superuser 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:126 User creation step 1 complete: Cognito user created with sub ID mock_cognito_sub
+INFO     voice_core.users.managers:managers.py:134 User creation step 2 complete: DjangoDb user created with user ID 25
+INFO     voice_core.users.managers:managers.py:64 User creation step 3.1 complete: Wazo admin token obtained
+INFO     voice_core.users.managers:managers.py:73 User creation step 3.2 complete: tenant_uuid 51513eb0-1154-43b6-a001-03953e793928
+INFO     voice_core.users.managers:managers.py:84 User creation step 3.3 complete: user platform role 'agent'
+INFO     voice_core.users.managers:managers.py:88 User creation step 3.4 complete: user role for this tenant: 'example.com' is 'agent'
+INFO     voice_core.users.managers:managers.py:99 User creation step 3.5 complete: wazo_user_id b3d922ce-82c7-4d61-abbe-52545da1c1dc
+INFO     voice_core.users.managers:managers.py:150 User created successfully: admin@example.com (Cognito sub: mock_cognito_sub)
+INFO     voice_core.users.managers:managers.py:161 User created successfully: admin@example.com (Cognito sub: mock_cognito_sub) | Cognito: 0.006s, DB Save: 0.672s, Wazo: 0.017s, Total: 0.694s
+PASSED                                                                   [ 21%]
+tests/users/test_managers.py::TestUserManager::test_create_superuser_username_ignored 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:126 User creation step 1 complete: Cognito user created with sub ID mock_cognito_sub
+INFO     voice_core.users.managers:managers.py:134 User creation step 2 complete: DjangoDb user created with user ID 26
+INFO     voice_core.users.managers:managers.py:64 User creation step 3.1 complete: Wazo admin token obtained
+INFO     voice_core.users.managers:managers.py:73 User creation step 3.2 complete: tenant_uuid b6199638-896e-421d-9900-4d565a0c6fa5
+INFO     voice_core.users.managers:managers.py:84 User creation step 3.3 complete: user platform role 'agent'
+INFO     voice_core.users.managers:managers.py:88 User creation step 3.4 complete: user role for this tenant: 'example.com' is 'agent'
+INFO     voice_core.users.managers:managers.py:99 User creation step 3.5 complete: wazo_user_id 874c9adf-d3db-413a-8307-517b4297199f
+INFO     voice_core.users.managers:managers.py:150 User created successfully: test@example.com (Cognito sub: mock_cognito_sub)
+INFO     voice_core.users.managers:managers.py:161 User created successfully: test@example.com (Cognito sub: mock_cognito_sub) | Cognito: 0.001s, DB Save: 0.428s, Wazo: 0.007s, Total: 0.436s
+PASSED                                                                   [ 22%]
+tests/users/test_managers.py::TestUserManager::test_createsuperuser_command 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:126 User creation step 1 complete: Cognito user created with sub ID mock_cognito_sub
+INFO     voice_core.users.managers:managers.py:134 User creation step 2 complete: DjangoDb user created with user ID 27
+INFO     voice_core.users.managers:managers.py:64 User creation step 3.1 complete: Wazo admin token obtained
+INFO     voice_core.users.managers:managers.py:73 User creation step 3.2 complete: tenant_uuid 481ce36a-2d69-419e-8d23-79e21061201c
+INFO     voice_core.users.managers:managers.py:84 User creation step 3.3 complete: user platform role 'agent'
+INFO     voice_core.users.managers:managers.py:88 User creation step 3.4 complete: user role for this tenant: 'example.com' is 'agent'
+INFO     voice_core.users.managers:managers.py:99 User creation step 3.5 complete: wazo_user_id e99392ec-dbc6-4018-8588-bb8c2209876f
+INFO     voice_core.users.managers:managers.py:150 User created successfully: henry@example.com (Cognito sub: mock_cognito_sub)
+INFO     voice_core.users.managers:managers.py:161 User created successfully: henry@example.com (Cognito sub: mock_cognito_sub) | Cognito: 0.001s, DB Save: 0.003s, Wazo: 0.007s, Total: 0.011s
+PASSED                                                                   [ 23%]
+tests/users/test_mock_managers.py::test_create_admin_user_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:126 User creation step 1 complete: Cognito user created with sub ID cognito-sub-123
+INFO     voice_core.users.managers:managers.py:134 User creation step 2 complete: DjangoDb user created with user ID 1
+INFO     voice_core.users.managers:managers.py:64 User creation step 3.1 complete: Wazo admin token obtained
+INFO     voice_core.users.managers:managers.py:73 User creation step 3.2 complete: tenant_uuid tenant-uuid-123
+INFO     voice_core.users.managers:managers.py:84 User creation step 3.3 complete: user platform role 'agent'
+INFO     voice_core.users.managers:managers.py:88 User creation step 3.4 complete: user role for this tenant: 'example' is 'admin'
+INFO     voice_core.users.managers:managers.py:99 User creation step 3.5 complete: wazo_user_id wazo-id-123
+INFO     voice_core.users.managers:managers.py:150 User created successfully: test@example.com (Cognito sub: cognito-sub-123)
+INFO     voice_core.users.managers:managers.py:161 User created successfully: test@example.com (Cognito sub: cognito-sub-123) | Cognito: 0.002s, DB Save: 0.120s, Wazo: 0.006s, Total: 0.128s
+PASSED                                                                   [ 24%]
+tests/users/test_mock_managers.py::test_create_agent_user_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:126 User creation step 1 complete: Cognito user created with sub ID cognito-sub-456
+INFO     voice_core.users.managers:managers.py:134 User creation step 2 complete: DjangoDb user created with user ID <MagicMock name='mock().pk' id='140184781267952'>
+INFO     voice_core.users.managers:managers.py:64 User creation step 3.1 complete: Wazo admin token obtained
+INFO     voice_core.users.managers:managers.py:73 User creation step 3.2 complete: tenant_uuid tenant-uuid-456
+INFO     voice_core.users.managers:managers.py:84 User creation step 3.3 complete: user platform role 'agent'
+INFO     voice_core.users.managers:managers.py:88 User creation step 3.4 complete: user role for this tenant: 'example' is 'agent'
+INFO     voice_core.users.managers:managers.py:99 User creation step 3.5 complete: wazo_user_id wazo-id-456
+INFO     voice_core.users.managers:managers.py:150 User created successfully: agent@example.com (Cognito sub: cognito-sub-456)
+INFO     voice_core.users.managers:managers.py:161 User created successfully: agent@example.com (Cognito sub: cognito-sub-456) | Cognito: 0.002s, DB Save: 0.411s, Wazo: 0.025s, Total: 0.437s
+PASSED                                                                   [ 25%]
+tests/users/test_mock_managers.py::test_create_user_cognito_failure 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.users.managers:managers.py:123 Fail to create user at cognito
+PASSED                                                                   [ 25%]
+tests/users/test_mock_managers.py::test_create_user_wazo_token_failure_triggers_rollback 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:126 User creation step 1 complete: Cognito user created with sub ID sub123
+INFO     voice_core.users.managers:managers.py:134 User creation step 2 complete: DjangoDb user created with user ID 1
+ERROR    voice_core.users.managers:managers.py:60 Fail to get Wazo admin token
+NoneType: None
+PASSED                                                                   [ 26%]
+tests/users/test_mock_managers.py::test_create_user_wazo_tenant_failure_triggers_rollback 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:126 User creation step 1 complete: Cognito user created with sub ID sub123
+INFO     voice_core.users.managers:managers.py:134 User creation step 2 complete: DjangoDb user created with user ID 1
+INFO     voice_core.users.managers:managers.py:64 User creation step 3.1 complete: Wazo admin token obtained
+ERROR    voice_core.users.managers:managers.py:69 Fail to get wazo tenant UUID
+NoneType: None
+PASSED                                                                   [ 27%]
+tests/users/test_mock_managers.py::test_create_superuser_sets_fields_correctly 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:126 User creation step 1 complete: Cognito user created with sub ID sub123
+INFO     voice_core.users.managers:managers.py:134 User creation step 2 complete: DjangoDb user created with user ID 1
+INFO     voice_core.users.managers:managers.py:64 User creation step 3.1 complete: Wazo admin token obtained
+INFO     voice_core.users.managers:managers.py:73 User creation step 3.2 complete: tenant_uuid tenant-uuid
+INFO     voice_core.users.managers:managers.py:84 User creation step 3.3 complete: user platform role 'agent'
+INFO     voice_core.users.managers:managers.py:88 User creation step 3.4 complete: user role for this tenant: 'example' is 'admin'
+INFO     voice_core.users.managers:managers.py:99 User creation step 3.5 complete: wazo_user_id 123e4567-e89b-12d3-a456-426614174000
+INFO     voice_core.users.managers:managers.py:150 User created successfully: super@example.com (Cognito sub: sub123)
+INFO     voice_core.users.managers:managers.py:161 User created successfully: super@example.com (Cognito sub: sub123) | Cognito: 0.007s, DB Save: 0.411s, Wazo: 0.004s, Total: 0.422s
+PASSED                                                                   [ 28%]
+tests/users/test_tasks.py::test_user_count 
+-------------------------------- live log call ---------------------------------
+INFO     celery.app.trace:trace.py:128 Task voice_core.users.tasks.get_users_count[e9b75421-2edc-4817-981f-5a20103ca2a3] succeeded in 0.03605158798745833s: 3
+PASSED                                                                   [ 28%]
+tests/users/test_tasks.py::TestSendEmailTask::test_send_email_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.tasks:tasks.py:31 Sending Welcome mail to  Body
+INFO     voice_core.users.tasks:tasks.py:57 Sending Email from <MagicMock name='get_connection().username' id='140184782002784'>
+INFO     voice_core.users.tasks:tasks.py:76 Email sent successfully | to=Body backend=django.core.mail.backends.locmem.EmailBackend host=smtp.gmail.com port=587 tls=True ssl=False
+PASSED                                                                   [ 29%]
+tests/users/test_tasks.py::TestSendEmailTask::test_send_email_failure_zero_count 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.tasks:tasks.py:31 Sending Welcome mail to  Body
+INFO     voice_core.users.tasks:tasks.py:57 Sending Email from <MagicMock name='get_connection().username' id='140184782002400'>
+WARNING  voice_core.users.tasks:tasks.py:87 Email send() returned 0 | to=Body
+PASSED                                                                   [ 30%]
+tests/users/test_tasks.py::TestSendEmailTask::test_smtp_authentication_error_triggers_retry 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.tasks:tasks.py:31 Sending Welcome mail to  ['to@example.com']
+INFO     voice_core.users.tasks:tasks.py:57 Sending Email from <MagicMock name='get_connection().username' id='140184780559552'>
+ERROR    voice_core.users.tasks:tasks.py:91 SMTP authentication failed (code=534). If using Gmail, configure App Passwords.
+Traceback (most recent call last):
+  File "/app/voice_core/users/tasks.py", line 73, in send_email_task
+    sent_count = email.send(fail_silently=fail_silently)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+smtplib.SMTPAuthenticationError: (534, b'auth failed')
+INFO     voice_core.users.tasks:tasks.py:98 Retrying email task (attempt 3)
+PASSED                                                                   [ 31%]
+tests/users/test_tasks.py::TestSendEmailTask::test_generic_exception_triggers_retry 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.tasks:tasks.py:31 Sending Welcome mail to  ['to@example.com']
+INFO     voice_core.users.tasks:tasks.py:57 Sending Email from <MagicMock name='get_connection().username' id='140184780533600'>
+ERROR    voice_core.users.tasks:tasks.py:104 Failed to send email to ['to@example.com']
+Traceback (most recent call last):
+  File "/app/voice_core/users/tasks.py", line 73, in send_email_task
+    sent_count = email.send(fail_silently=fail_silently)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+INFO     voice_core.users.tasks:tasks.py:106 Retrying email task (attempt 3)
+PASSED                                                                   [ 31%]
+tests/api/test_urls.py::test_user_detail SKIPPED (Skipping all admin...) [ 32%]
+tests/api/test_urls.py::test_user_list SKIPPED (Skipping all admin t...) [ 33%]
+tests/api/test_urls.py::test_user_me SKIPPED (Skipping all admin tes...) [ 34%]
+tests/api/test_views.py::TestUserViewSet::test_get_queryset SKIPPED      [ 34%]
+tests/api/test_views.py::TestUserViewSet::test_me SKIPPED (Skipping ...) [ 35%]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:243 Extension assigned | tenant_id=1 user_id=2 line_id=123 extension=142 context='ctx-acme'
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:259 Extension assignment completed successfully. Line Creation: 0.000s, Extension Creation: 0.000s, SIP Endpoint Creation: 0.000s, Assign Line SIP: 0.000s, Assign Line Extension: 0.000s, Assign User Line: 0.000s, Voicemail Creation: 0.000s, Total: 0.000s
+PASSED                                                                   [ 36%]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_missing_tenant_uuid_raises 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:31 No valid cached Wazo admin token found in Redis, creating new token ...... 
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:73 Creating Wazo admin token for admin: na_admin
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:35 Created New Admin Token: None
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:273 Error assigning extension for tenant_id=1 user_id=2: Tenant is missing wazo_tenant_uuid
+Traceback (most recent call last):
+  File "/app/voice_core/services/extensions/assign_extension.py", line 161, in assign_extension
+    raise ValueError("Tenant is missing wazo_tenant_uuid")
+ValueError: Tenant is missing wazo_tenant_uuid
+PASSED                                                                   [ 37%]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_missing_user_uuid_raises 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:273 Error assigning extension for tenant_id=1 user_id=2: User is missing wazo_user_id
+Traceback (most recent call last):
+  File "/app/voice_core/services/extensions/assign_extension.py", line 211, in assign_extension
+    raise ValueError("User is missing wazo_user_id")
+ValueError: User is missing wazo_user_id
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:52 Rollback starts tenant_uuid=ten-uuid, line_id=1, sip_uuid=sip, extension_id=2, user_uuid=None, voicemail_id=None
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:358 rollback_unassign_sip_start tenant_uuid=ten-uuid line_id=1 sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/lines/1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:369 rollback_unassign_sip_failed tenant_uuid=ten-uuid line_id=1 sip_uuid=sip status=502 body=<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=873
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:72 Rollback: failed to unassign line with sip endpoint line_id=1 sip_uuid=sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:379 rollback_unassign_line_from_extension_start tenant_uuid=ten-uuid line_id=1 extension_id=2 url=https://35.169.30.120/api/confd/1.1/lines/1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:390 rollback_unassign_line_from_extension_failed tenant_uuid=ten-uuid line_id=1 extension_id=2 status=502 body=<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=941
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:82 Rollback: failed to unassign line with extension line_id=1 extension_id=2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:421 rollback_delete_sip_endpoint_start tenant_uuid=ten-uuid sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:432 rollback_delete_sip_endpoint_failed tenant_uuid=ten-uuid sip_uuid=sip status=502 body=<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=812
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:92 Rollback: failed to delete sip endpoint sip_uuid=sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:442 rollback_delete_line_start tenant_uuid=ten-uuid line_id=1 url=https://35.169.30.120/api/confd/1.1/lines/1
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:453 rollback_delete_line_failed tenant_uuid=ten-uuid line_id=1 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180904
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:102 Rollback: failed to delete line line_id=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:463 rollback_delete_extension_start tenant_uuid=ten-uuid extension_id=2 url=https://35.169.30.120/api/confd/1.1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:474 rollback_delete_extension_failed tenant_uuid=ten-uuid extension_id=2 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181028
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:112 Rollback: failed to delete extension extension_id=2
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:133 Rollback: Successfully completed at extension assignment
+PASSED                                                                   [ 37%]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_step_failures_raise[assign_line_with_sip_endpoint-False] 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:273 Error assigning extension for tenant_id=1 user_id=2: Failed to attach SIP endpoint to line
+Traceback (most recent call last):
+  File "/app/voice_core/services/extensions/assign_extension.py", line 201, in assign_extension
+    raise RuntimeError("Failed to attach SIP endpoint to line")
+RuntimeError: Failed to attach SIP endpoint to line
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:52 Rollback starts tenant_uuid=ten-uuid, line_id=1, sip_uuid=sip, extension_id=2, user_uuid=None, voicemail_id=None
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:358 rollback_unassign_sip_start tenant_uuid=ten-uuid line_id=1 sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/lines/1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:369 rollback_unassign_sip_failed tenant_uuid=ten-uuid line_id=1 sip_uuid=sip status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181150
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:72 Rollback: failed to unassign line with sip endpoint line_id=1 sip_uuid=sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:379 rollback_unassign_line_from_extension_start tenant_uuid=ten-uuid line_id=1 extension_id=2 url=https://35.169.30.120/api/confd/1.1/lines/1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:390 rollback_unassign_line_from_extension_failed tenant_uuid=ten-uuid line_id=1 extension_id=2 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181074
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:82 Rollback: failed to unassign line with extension line_id=1 extension_id=2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:421 rollback_delete_sip_endpoint_start tenant_uuid=ten-uuid sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:432 rollback_delete_sip_endpoint_failed tenant_uuid=ten-uuid sip_uuid=sip status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181602
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:92 Rollback: failed to delete sip endpoint sip_uuid=sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:442 rollback_delete_line_start tenant_uuid=ten-uuid line_id=1 url=https://35.169.30.120/api/confd/1.1/lines/1
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:453 rollback_delete_line_failed tenant_uuid=ten-uuid line_id=1 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180940
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:102 Rollback: failed to delete line line_id=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:463 rollback_delete_extension_start tenant_uuid=ten-uuid extension_id=2 url=https://35.169.30.120/api/confd/1.1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:474 rollback_delete_extension_failed tenant_uuid=ten-uuid extension_id=2 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181129
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:112 Rollback: failed to delete extension extension_id=2
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:133 Rollback: Successfully completed at extension assignment
+PASSED                                                                   [ 38%]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_step_failures_raise[assign_line_with_extension-False] 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:273 Error assigning extension for tenant_id=1 user_id=2: Failed to attach line to extension
+Traceback (most recent call last):
+  File "/app/voice_core/services/extensions/assign_extension.py", line 206, in assign_extension
+    raise RuntimeError("Failed to attach line to extension")
+RuntimeError: Failed to attach line to extension
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:52 Rollback starts tenant_uuid=ten-uuid, line_id=1, sip_uuid=sip, extension_id=2, user_uuid=None, voicemail_id=None
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:358 rollback_unassign_sip_start tenant_uuid=ten-uuid line_id=1 sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/lines/1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:369 rollback_unassign_sip_failed tenant_uuid=ten-uuid line_id=1 sip_uuid=sip status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181037
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:72 Rollback: failed to unassign line with sip endpoint line_id=1 sip_uuid=sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:379 rollback_unassign_line_from_extension_start tenant_uuid=ten-uuid line_id=1 extension_id=2 url=https://35.169.30.120/api/confd/1.1/lines/1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:390 rollback_unassign_line_from_extension_failed tenant_uuid=ten-uuid line_id=1 extension_id=2 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181144
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:82 Rollback: failed to unassign line with extension line_id=1 extension_id=2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:421 rollback_delete_sip_endpoint_start tenant_uuid=ten-uuid sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:432 rollback_delete_sip_endpoint_failed tenant_uuid=ten-uuid sip_uuid=sip status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180886
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:92 Rollback: failed to delete sip endpoint sip_uuid=sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:442 rollback_delete_line_start tenant_uuid=ten-uuid line_id=1 url=https://35.169.30.120/api/confd/1.1/lines/1
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:453 rollback_delete_line_failed tenant_uuid=ten-uuid line_id=1 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180991
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:102 Rollback: failed to delete line line_id=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:463 rollback_delete_extension_start tenant_uuid=ten-uuid extension_id=2 url=https://35.169.30.120/api/confd/1.1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:474 rollback_delete_extension_failed tenant_uuid=ten-uuid extension_id=2 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180907
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:112 Rollback: failed to delete extension extension_id=2
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:133 Rollback: Successfully completed at extension assignment
+PASSED                                                                   [ 39%]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_step_failures_raise[assign_user_with_line-False] 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:273 Error assigning extension for tenant_id=1 user_id=2: Failed to attach line to user
+Traceback (most recent call last):
+  File "/app/voice_core/services/extensions/assign_extension.py", line 214, in assign_extension
+    raise RuntimeError("Failed to attach line to user")
+RuntimeError: Failed to attach line to user
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:52 Rollback starts tenant_uuid=ten-uuid, line_id=1, sip_uuid=sip, extension_id=2, user_uuid=user-uuid, voicemail_id=None
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:400 rollback_unassign_line_from_user_start tenant_uuid=ten-uuid line_id=1 user_uuid=user-uuid url=https://35.169.30.120/api/confd/1.1/users/user-uuid/lines/1
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:411 rollback_unassign_line_from_user_failed tenant_uuid=ten-uuid line_id=1 user_uuid=user-uuid status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180808
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:62 Rollback: failed to unassign user with line user_uuid=user-uuid line_id=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:358 rollback_unassign_sip_start tenant_uuid=ten-uuid line_id=1 sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/lines/1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:369 rollback_unassign_sip_failed tenant_uuid=ten-uuid line_id=1 sip_uuid=sip status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180973
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:72 Rollback: failed to unassign line with sip endpoint line_id=1 sip_uuid=sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:379 rollback_unassign_line_from_extension_start tenant_uuid=ten-uuid line_id=1 extension_id=2 url=https://35.169.30.120/api/confd/1.1/lines/1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:390 rollback_unassign_line_from_extension_failed tenant_uuid=ten-uuid line_id=1 extension_id=2 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180955
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:82 Rollback: failed to unassign line with extension line_id=1 extension_id=2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:421 rollback_delete_sip_endpoint_start tenant_uuid=ten-uuid sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:432 rollback_delete_sip_endpoint_failed tenant_uuid=ten-uuid sip_uuid=sip status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180898
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:92 Rollback: failed to delete sip endpoint sip_uuid=sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:442 rollback_delete_line_start tenant_uuid=ten-uuid line_id=1 url=https://35.169.30.120/api/confd/1.1/lines/1
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:453 rollback_delete_line_failed tenant_uuid=ten-uuid line_id=1 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181088
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:102 Rollback: failed to delete line line_id=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:463 rollback_delete_extension_start tenant_uuid=ten-uuid extension_id=2 url=https://35.169.30.120/api/confd/1.1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:474 rollback_delete_extension_failed tenant_uuid=ten-uuid extension_id=2 status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=180889
+ERROR    voice_core.services.extensions.assign_extension:assign_extension.py:112 Rollback: failed to delete extension extension_id=2
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:133 Rollback: Successfully completed at extension assignment
+PASSED                                                                   [ 40%]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_context_resolution_list_and_legacy_dict 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:243 Extension assigned | tenant_id=1 user_id=2 line_id=1 extension=100 context='list-name'
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:259 Extension assignment completed successfully. Line Creation: 0.001s, Extension Creation: 0.001s, SIP Endpoint Creation: 0.001s, Assign Line SIP: 0.002s, Assign Line Extension: 0.000s, Assign User Line: 0.000s, Voicemail Creation: 0.001s, Total: 0.005s
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:243 Extension assigned | tenant_id=1 user_id=2 line_id=1 extension=100 context='dict-name'
+INFO     voice_core.services.extensions.assign_extension:assign_extension.py:259 Extension assignment completed successfully. Line Creation: 0.000s, Extension Creation: 0.000s, SIP Endpoint Creation: 0.000s, Assign Line SIP: 0.000s, Assign Line Extension: 0.000s, Assign User Line: 0.000s, Voicemail Creation: 0.000s, Total: 0.001s
+PASSED                                                                   [ 40%]
+tests/services/extensions/test_available_extensions.py::test_happy_path_list_contexts 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:18 Getting available extensions for tenant: Acme (ID: 1)
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:68 Found available extensions for 2 contexts in tenant Acme
+PASSED                                                                   [ 41%]
+tests/services/extensions/test_available_extensions.py::test_legacy_dict_contexts 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:18 Getting available extensions for tenant: Acme (ID: 1)
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:68 Found available extensions for 1 contexts in tenant Acme
+PASSED                                                                   [ 42%]
+tests/services/extensions/test_available_extensions.py::test_overlapping_ranges_are_deduped_and_sorted 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:18 Getting available extensions for tenant: Acme (ID: 1)
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:68 Found available extensions for 1 contexts in tenant Acme
+PASSED                                                                   [ 43%]
+tests/services/extensions/test_available_extensions.py::test_all_assigned_still_returns_empty_list_for_context 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:18 Getting available extensions for tenant: Acme (ID: 1)
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:68 Found available extensions for 1 contexts in tenant Acme
+PASSED                                                                   [ 43%]
+tests/services/extensions/test_available_extensions.py::test_empty_contexts_returns_empty_dict 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:18 Getting available extensions for tenant: Acme (ID: 1)
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:68 Found available extensions for 0 contexts in tenant Acme
+PASSED                                                                   [ 44%]
+tests/services/extensions/test_available_extensions.py::test_tenant_not_found_returns_empty_dict 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.services.extensions.available_extensions:available_extensions.py:72 Tenant with ID 999 does not exist
+PASSED                                                                   [ 45%]
+tests/services/extensions/test_available_extensions.py::test_generic_exception_returns_empty_dict 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.extensions.available_extensions:available_extensions.py:18 Getting available extensions for tenant: Acme (ID: 1)
+ERROR    voice_core.services.extensions.available_extensions:available_extensions.py:75 Error getting available extensions for tenant 1: db error
+Traceback (most recent call last):
+  File "/app/voice_core/services/extensions/available_extensions.py", line 29, in get_available_extensions
+    assigned_extensions = ExtensionAssignment.objects.filter(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: db error
+PASSED                                                                   [ 46%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_get_cached_wazo_admin_token_from_cache_cache_hit 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:48 Returning cached Wazo admin token from Redis
+PASSED                                                                   [ 46%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_get_cached_wazo_admin_token_from_cache_cache_miss PASSED [ 47%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_create_wazo_admin_token_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:73 Creating Wazo admin token for admin: na_admin
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:85 New Wazo admin token for admin: new-token-456
+PASSED                                                                   [ 48%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_create_wazo_admin_token_failure_status 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:73 Creating Wazo admin token for admin: na_admin
+PASSED                                                                   [ 49%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_create_wazo_admin_token_raises_on_exception 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:73 Creating Wazo admin token for admin: na_admin
+ERROR    voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:92 Failed to create Wazo admin token: Network failure
+PASSED                                                                   [ 50%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_set_cached_wazo_admin_token_calls_cache_set PASSED [ 50%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_clear_wazo_admin_token_cache_calls_cache_delete PASSED [ 51%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_get_wazo_admin_token_cache_hit_returns_token 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:27 Get Token from redis cache
+PASSED                                                                   [ 52%]
+tests/services/wazo_helpers/test_wazo_admin.py::test_get_wazo_admin_token_cache_miss_creates_and_caches_token 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:31 No valid cached Wazo admin token found in Redis, creating new token ...... 
+INFO     voice_core.services.wazo_helpers.wazo_admin_token:wazo_admin_token.py:35 Created New Admin Token: new-token-abc
+PASSED                                                                   [ 53%]
+tests/services/wazo_helpers/test_wazo_context.py::test_create_wazo_context_success_builds_payload_and_parses_response 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_context:wazo_context.py:45 Making Wazo API call to create context: Acme-initial-context for tenant: 967ac2a1-a405-49f8-a053-61c8165d7c72
+INFO     voice_core.services.wazo_helpers.wazo_context:wazo_context.py:76 Wazo context created successfully - context_data: {'uuid': 'ctx-uuid', 'name': 'ctx-name', 'label': 'Acme-initial-context', 'user_ranges': [{'start': '100', 'end': '150'}]}
+PASSED                                                                   [ 53%]
+tests/services/wazo_helpers/test_wazo_context.py::test_create_wazo_context_non_201_raises 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_context:wazo_context.py:45 Making Wazo API call to create context: label for tenant: 1100d02c-e914-4282-b511-9bdadbfe1997
+ERROR    voice_core.services.wazo_helpers.wazo_context:wazo_context.py:80 Wazo API returned error status: 400, response: Bad
+ERROR    voice_core.services.wazo_helpers.wazo_context:wazo_context.py:90 Unexpected error during context creation: HTTP 400
+Traceback (most recent call last):
+  File "/app/voice_core/services/wazo_helpers/wazo_context.py", line 81, in create_wazo_context
+    response.raise_for_status()
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+Exception: HTTP 400
+PASSED                                                                   [ 54%]
+tests/services/wazo_helpers/test_wazo_context.py::test_create_wazo_context_request_exception_bubbles 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_context:wazo_context.py:45 Making Wazo API call to create context: label for tenant: b876824b-3b0f-4d73-b28e-1b92cccafa1c
+ERROR    voice_core.services.wazo_helpers.wazo_context:wazo_context.py:84 HTTP request failed for context creation: network
+Traceback (most recent call last):
+  File "/app/voice_core/services/wazo_helpers/wazo_context.py", line 65, in create_wazo_context
+    response = requests.post(url, headers=headers, json=data, verify=False)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: network
+PASSED                                                                   [ 55%]
+tests/services/wazo_helpers/test_wazo_context.py::test_create_wazo_context_missing_keys_raises_keyerror 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_context:wazo_context.py:45 Making Wazo API call to create context: label for tenant: c2f92217-affa-40fa-97e8-9440560b78cb
+ERROR    voice_core.services.wazo_helpers.wazo_context:wazo_context.py:87 Unexpected response format from Wazo API: missing key 'name', response: <MagicMock name='post().text' id='140184778044672'>
+PASSED                                                                   [ 56%]
+tests/services/wazo_helpers/test_wazo_context.py::test_create_context_success_calls_create_wazo_context_with_computed_values SKIPPED [ 56%]
+tests/services/wazo_helpers/test_wazo_context.py::test_create_context_bubbles_error 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_context:wazo_context.py:17 Starting context creation for tenant: Acme (UUID: c8c228cb-24a8-49ee-9799-24b6a720b0e2)
+INFO     voice_core.services.wazo_helpers.wazo_context:wazo_context.py:22 extension_start_value: 1000
+INFO     voice_core.services.wazo_helpers.wazo_context:wazo_context.py:26 Creating Wazo context with label: Acme-initial-context, type: internal, user_ranges: [{'start': '1000', 'end': '1050'}]
+ERROR    voice_core.services.wazo_helpers.wazo_context:wazo_context.py:33 Failed to create context for tenant Acme: boom
+Traceback (most recent call last):
+  File "/app/voice_core/services/wazo_helpers/wazo_context.py", line 27, in create_context
+    context_data = create_wazo_context(admin_token, str(tenant.wazo_tenant_uuid), label, context_type, user_ranges)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+Exception: boom
+PASSED                                                                   [ 57%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_headers_includes_tenant_as_str PASSED [ 58%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_line_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:36 create_line_start tenant_uuid=ten context=ctx url=https://35.169.30.120/api/confd/1.1/lines
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:48 create_line_success tenant_uuid=ten context=ctx line_id=123 provisioning_extension=456 duration_ms=5
+PASSED                                                                   [ 59%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_line_non_2xx_raises 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:36 create_line_start tenant_uuid=ten context=ctx url=https://35.169.30.120/api/confd/1.1/lines
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:50 create_line_failed tenant_uuid=ten context=ctx status=400 body=<MagicMock name='post().text' id='140184778230144'> duration_ms=2
+PASSED                                                                   [ 59%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_sip_endpoint_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:94 create_sip_endpoint_dependencies transport_udp_uuid=transport-uuid global_template_uuid=global-uuid
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:104 create_sip_endpoint_start tenant_uuid=ten label=lbl url=https://35.169.30.120/api/confd/1.1/endpoints/sip data={'auth_section_options': [['username', 'user'], ['password', 'pwd']], 'endpoint_section_options': [['rewrite_contact', 'yes'], ['force_rport', 'yes'], ['rtp_symmetric', 'yes']], 'label': 'lbl', 'name': 'user', 'templates': [{'uuid': 'global-uuid'}], 'transport': {'uuid': 'transport-uuid'}}
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:117 create_sip_endpoint_success tenant_uuid=ten uuid=u label=L name=N duration_ms=0
+PASSED                                                                   [ 60%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_get_transport_uuid_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:189 get_transport_uuid_start url=https://35.169.30.120/api/confd/1.1/sip/transports
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:207 get_transport_uuid_success uuid=udp-uuid duration_ms=3
+PASSED                                                                   [ 61%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_get_transport_uuid_not_found_raises_attribute_error_current_impl SKIPPED [ 62%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_user_voicemail_success_bool_enabled 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:282 create_user_voicemail_start tenant_uuid=ten wazo_user_id=user extension=100 context=ctx url=https://35.169.30.120/api/confd/1.1/users/user/voicemails
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:295 create_user_voicemail_success tenant_uuid=ten wazo_user_id=user voicemail_id=id1 enabled=True duration_ms=5
+PASSED                                                                   [ 62%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_user_voicemail_success_string_enabled 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:282 create_user_voicemail_start tenant_uuid=ten wazo_user_id=user extension=100 context=ctx url=https://35.169.30.120/api/confd/1.1/users/user/voicemails
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:295 create_user_voicemail_success tenant_uuid=ten wazo_user_id=user voicemail_id=id1 enabled=False duration_ms=5
+PASSED                                                                   [ 63%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_user_voicemail_parse_error_returns_nones 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:282 create_user_voicemail_start tenant_uuid=ten wazo_user_id=user extension=100 context=ctx url=https://35.169.30.120/api/confd/1.1/users/user/voicemails
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:302 create_user_voicemail_parse_error tenant_uuid=ten wazo_user_id=user error=bad json duration_ms=4
+PASSED                                                                   [ 64%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_user_voicemail_non_201_returns_false 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:282 create_user_voicemail_start tenant_uuid=ten wazo_user_id=user extension=100 context=ctx url=https://35.169.30.120/api/confd/1.1/users/user/voicemails
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:305 create_user_voicemail_failed tenant_uuid=ten wazo_user_id=user status=400 body=bad duration_ms=2
+PASSED                                                                   [ 65%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_assign_line_with_sip_endpoint_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:129 assign_line_with_sip_endpoint_start tenant_uuid=ten line_id=1 sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/lines/1/endpoints/sip/sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:138 assign_line_with_sip_endpoint_success tenant_uuid=ten line_id=1 sip_uuid=sip duration_ms=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:129 assign_line_with_sip_endpoint_start tenant_uuid=ten line_id=1 sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/lines/1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:140 assign_line_with_sip_endpoint_failed tenant_uuid=ten line_id=1 sip_uuid=sip status=500 body=err duration_ms=0
+PASSED                                                                   [ 65%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_extension_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:64 create_extension_start tenant_uuid=ten context=ctx exten=123 url=https://35.169.30.120/api/confd/1.1/extensions
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:75 create_extension_success tenant_uuid=ten context=ctx exten=123 extension_id=7 duration_ms=9
+PASSED                                                                   [ 66%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_extension_non_2xx_raises 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:64 create_extension_start tenant_uuid=ten context=ctx exten=123 url=https://35.169.30.120/api/confd/1.1/extensions
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:77 create_extension_failed tenant_uuid=ten context=ctx exten=123 status=400 body=<MagicMock name='post().text' id='140184788398832'> duration_ms=7
+PASSED                                                                   [ 67%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_sip_endpoint_non_201_raises 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:189 get_transport_uuid_start url=https://35.169.30.120/api/confd/1.1/sip/transports
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:209 get_transport_uuid_failed status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181081
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:214 get_global_template_uuid_start tenant_uuid=ten
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:236 get_global_template_uuid_failed tenant_uuid=ten status=504 body=<html>
+<head><title>504 Gateway Time-out</title></head>
+<body>
+<center><h1>504 Gateway Time-out</h1></center>
+<hr><center>nginx/1.18.0</center>
+</body>
+</html>
+ duration_ms=181033
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:94 create_sip_endpoint_dependencies transport_udp_uuid=False global_template_uuid=False
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:104 create_sip_endpoint_start tenant_uuid=ten label=lbl url=https://35.169.30.120/api/confd/1.1/endpoints/sip data={'auth_section_options': [['username', 'u'], ['password', 'p']], 'endpoint_section_options': [['rewrite_contact', 'yes'], ['force_rport', 'yes'], ['rtp_symmetric', 'yes']], 'label': 'lbl', 'name': 'u', 'templates': [{'uuid': False}], 'transport': {'uuid': False}}
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:119 create_sip_endpoint_failed tenant_uuid=ten label=lbl status=400 body=<MagicMock name='post().text' id='140184786001344'> duration_ms=7
+PASSED                                                                   [ 68%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_get_global_template_uuid_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:214 get_global_template_uuid_start tenant_uuid=ten
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:234 get_global_template_uuid_success tenant_uuid=ten uuid=g duration_ms=0
+PASSED                                                                   [ 68%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_get_global_template_uuid_not_found_raises_current_impl SKIPPED [ 69%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_get_global_template_uuid_non_200_returns_false 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:214 get_global_template_uuid_start tenant_uuid=ten
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:236 get_global_template_uuid_failed tenant_uuid=ten status=500 body=err duration_ms=0
+PASSED                                                                   [ 70%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_get_transport_uuid_non_200_returns_false 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:189 get_transport_uuid_start url=https://35.169.30.120/api/confd/1.1/sip/transports
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:209 get_transport_uuid_failed status=500 body=err duration_ms=2
+PASSED                                                                   [ 71%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_assign_line_with_extension_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:150 assign_line_with_extension_start tenant_uuid=ten line_id=1 extension_id=2 url=https://35.169.30.120/api/confd/1.1/lines/1/extensions/2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:159 assign_line_with_extension_success tenant_uuid=ten line_id=1 extension_id=2 duration_ms=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:150 assign_line_with_extension_start tenant_uuid=ten line_id=1 extension_id=2 url=https://35.169.30.120/api/confd/1.1/lines/1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:161 assign_line_with_extension_failed tenant_uuid=ten line_id=1 extension_id=2 status=400 body=err duration_ms=0
+PASSED                                                                   [ 71%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_assign_user_with_line_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:171 assign_user_with_line_start tenant_uuid=ten user_uuid=usr line_id=1 url=https://35.169.30.120/api/confd/1.1/users/usr/lines/1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:180 assign_user_with_line_success tenant_uuid=ten user_uuid=usr line_id=1 duration_ms=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:171 assign_user_with_line_start tenant_uuid=ten user_uuid=usr line_id=1 url=https://35.169.30.120/api/confd/1.1/users/usr/lines/1
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:182 assign_user_with_line_failed tenant_uuid=ten user_uuid=usr line_id=1 status=400 body=err duration_ms=0
+PASSED                                                                   [ 72%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_unassign_line_with_sip_endpoint_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:358 rollback_unassign_sip_start tenant_uuid=ten line_id=1 sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/lines/1/endpoints/sip/sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:367 rollback_unassign_sip_success tenant_uuid=ten line_id=1 sip_uuid=sip duration_ms=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:358 rollback_unassign_sip_start tenant_uuid=ten line_id=1 sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/lines/1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:369 rollback_unassign_sip_failed tenant_uuid=ten line_id=1 sip_uuid=sip status=400 body=err duration_ms=0
+PASSED                                                                   [ 73%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_unassign_line_with_extension_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:379 rollback_unassign_line_from_extension_start tenant_uuid=ten line_id=1 extension_id=2 url=https://35.169.30.120/api/confd/1.1/lines/1/extensions/2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:388 rollback_unassign_line_from_extension_success tenant_uuid=ten line_id=1 extension_id=2 duration_ms=1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:379 rollback_unassign_line_from_extension_start tenant_uuid=ten line_id=1 extension_id=2 url=https://35.169.30.120/api/confd/1.1/lines/1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:390 rollback_unassign_line_from_extension_failed tenant_uuid=ten line_id=1 extension_id=2 status=400 body=err duration_ms=0
+PASSED                                                                   [ 74%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_unassign_user_with_line_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:400 rollback_unassign_line_from_user_start tenant_uuid=ten line_id=1 user_uuid=usr url=https://35.169.30.120/api/confd/1.1/users/usr/lines/1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:409 rollback_unassign_line_from_user_success tenant_uuid=ten line_id=1 user_uuid=usr duration_ms=2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:400 rollback_unassign_line_from_user_start tenant_uuid=ten line_id=1 user_uuid=usr url=https://35.169.30.120/api/confd/1.1/users/usr/lines/1
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:411 rollback_unassign_line_from_user_failed tenant_uuid=ten line_id=1 user_uuid=usr status=400 body=err duration_ms=1
+PASSED                                                                   [ 75%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_delete_sip_endpoint_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:421 rollback_delete_sip_endpoint_start tenant_uuid=ten sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/endpoints/sip/sip
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:430 rollback_delete_sip_endpoint_success tenant_uuid=ten sip_uuid=sip duration_ms=2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:421 rollback_delete_sip_endpoint_start tenant_uuid=ten sip_uuid=sip url=https://35.169.30.120/api/confd/1.1/endpoints/sip/sip
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:432 rollback_delete_sip_endpoint_failed tenant_uuid=ten sip_uuid=sip status=400 body=err duration_ms=0
+PASSED                                                                   [ 75%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_delete_line_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:442 rollback_delete_line_start tenant_uuid=ten line_id=1 url=https://35.169.30.120/api/confd/1.1/lines/1
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:451 rollback_delete_line_success tenant_uuid=ten line_id=1 duration_ms=2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:442 rollback_delete_line_start tenant_uuid=ten line_id=1 url=https://35.169.30.120/api/confd/1.1/lines/1
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:453 rollback_delete_line_failed tenant_uuid=ten line_id=1 status=500 body=err duration_ms=1
+PASSED                                                                   [ 76%]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_delete_extension_statuses 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:463 rollback_delete_extension_start tenant_uuid=ten extension_id=2 url=https://35.169.30.120/api/confd/1.1/extensions/2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:472 rollback_delete_extension_success tenant_uuid=ten extension_id=2 duration_ms=2
+INFO     voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:463 rollback_delete_extension_start tenant_uuid=ten extension_id=2 url=https://35.169.30.120/api/confd/1.1/extensions/2
+ERROR    voice_core.services.wazo_helpers.wazo_extensions:wazo_extensions.py:474 rollback_delete_extension_failed tenant_uuid=ten extension_id=2 status=500 body=err duration_ms=1
+PASSED                                                                   [ 77%]
+tests/services/wazo_helpers/test_wazo_tenant.py::test_create_wazo_tenant_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:49 Tenant create request for: {'name': 'TenantName'}
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:59 Tenant created successfully!
+PASSED                                                                   [ 78%]
+tests/services/wazo_helpers/test_wazo_tenant.py::test_create_wazo_tenant_failure_status 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:49 Tenant create request for: {'name': 'TenantName'}
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:65 Error 400: Bad request
+PASSED                                                                   [ 78%]
+tests/services/wazo_helpers/test_wazo_tenant.py::test_create_wazo_tenant_raises_request_exception 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:49 Tenant create request for: {'name': 'TenantName'}
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:68 Request failed: Connection error
+PASSED                                                                   [ 79%]
+tests/services/wazo_helpers/test_wazo_tenant.py::test_get_wazo_tenant_uuid_existing_tenant 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:14 Get Wazo Tenant ID from db
+PASSED                                                                   [ 80%]
+tests/services/wazo_helpers/test_wazo_tenant.py::test_get_wazo_tenant_uuid_new_tenant_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:18 Created New Wazo tenant: e940f922-b0bc-4607-b04b-aef44bb76ab3
+PASSED                                                                   [ 81%]
+tests/services/wazo_helpers/test_wazo_tenant.py::test_get_wazo_tenant_uuid_save_raises 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:18 Created New Wazo tenant: a24133ca-fcdb-4c56-aded-4fdbdc3c2c4f
+INFO     voice_core.services.wazo_helpers.wazo_tenant:wazo_tenant.py:34 Error saving tenant: DB save error
+PASSED                                                                   [ 81%]
+tests/services/wazo_helpers/test_wazo_user.py::test_create_wazo_user_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_user:wazo_user.py:19 User create request for: John Doe johndoe john@example.com t4u$H-otqHdD
+INFO     voice_core.services.wazo_helpers.wazo_user:wazo_user.py:36 User create request for: {'firstname': 'John', 'lastname': 'Doe', 'username': 'johndoe', 'email': 'john@example.com', 'password': 't4u$H-otqHdD', 'auth': {'email_address': 'john@example.com', 'enabled': True, 'firstname': 'John', 'lastname': 'Doe', 'password': 't4u$H-otqHdD', 'purpose': 'user', 'username': 'johndoe'}}
+INFO     voice_core.services.wazo_helpers.wazo_user:wazo_user.py:47 User created successfully!: {'uuid': '6a176816-70dc-4c16-8464-dca8c379d297', 'username': 'johndoe'}
+PASSED                                                                   [ 82%]
+tests/services/wazo_helpers/test_wazo_user.py::test_create_wazo_user_failure_status 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_user:wazo_user.py:19 User create request for: John Doe johndoe john@example.com B9UL$L+RGx+X
+INFO     voice_core.services.wazo_helpers.wazo_user:wazo_user.py:36 User create request for: {'firstname': 'John', 'lastname': 'Doe', 'username': 'johndoe', 'email': 'john@example.com', 'password': 'B9UL$L+RGx+X', 'auth': {'email_address': 'john@example.com', 'enabled': True, 'firstname': 'John', 'lastname': 'Doe', 'password': 'B9UL$L+RGx+X', 'purpose': 'user', 'username': 'johndoe'}}
+ERROR    voice_core.services.wazo_helpers.wazo_user:wazo_user.py:55 Fail to create wazo user! 400 Bad request
+PASSED                                                                   [ 83%]
+tests/services/wazo_helpers/test_wazo_user.py::test_create_wazo_user_exception 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.services.wazo_helpers.wazo_user:wazo_user.py:19 User create request for: John Doe johndoe john@example.com 6OzjIVqyB4V+
+INFO     voice_core.services.wazo_helpers.wazo_user:wazo_user.py:36 User create request for: {'firstname': 'John', 'lastname': 'Doe', 'username': 'johndoe', 'email': 'john@example.com', 'password': '6OzjIVqyB4V+', 'auth': {'email_address': 'john@example.com', 'enabled': True, 'firstname': 'John', 'lastname': 'Doe', 'password': '6OzjIVqyB4V+', 'purpose': 'user', 'username': 'johndoe'}}
+PASSED                                                                   [ 84%]
+tests/services/wazo_helpers/test_wazo_user.py::test_generate_valid_password_length_and_content PASSED [ 84%]
+tests/services/wazo_helpers/test_wazo_user.py::test_delete_wazo_user_success PASSED [ 85%]
+tests/services/wazo_helpers/test_wazo_user.py::test_delete_wazo_user_failure_status 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.services.wazo_helpers.wazo_user:wazo_user.py:99 Failed to delete Wazo user: 400 - Bad request
+PASSED                                                                   [ 86%]
+tests/services/wazo_helpers/test_wazo_user.py::test_delete_wazo_user_exception_returns_false 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.services.wazo_helpers.wazo_user:wazo_user.py:102 Error calling Wazo API to delete user: Connection error
+PASSED                                                                   [ 87%]
+tests/test_merge_production_dotenvs_in_dotenv.py::test_merge[input_contents0-] PASSED [ 87%]
+tests/test_merge_production_dotenvs_in_dotenv.py::test_merge[input_contents1-\n] PASSED [ 88%]
+tests/test_merge_production_dotenvs_in_dotenv.py::test_merge[input_contents2-JANE=doe\n] PASSED [ 89%]
+tests/test_merge_production_dotenvs_in_dotenv.py::test_merge[input_contents3-SEP=true\nAR=ator\n] PASSED [ 90%]
+tests/test_merge_production_dotenvs_in_dotenv.py::test_merge[input_contents4-A=0\nB=1\nC=2\n] PASSED [ 90%]
+tests/test_merge_production_dotenvs_in_dotenv.py::test_merge[input_contents5-X=x\n\nY=y\nZ=z\n\n] PASSED [ 91%]
+tests/users/test_cognito_user_creation.py::test_create_cognito_user_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.registration.cognito:cognito.py:31 Cognito sign-up successful: 12345
+INFO     voice_core.users.registration.cognito:cognito.py:42 Cognito user confirmed: test@example.com
+INFO     voice_core.users.registration.cognito:cognito.py:54 Cognito user confirmed: test@example.com 
+PASSED                                                                   [ 92%]
+tests/users/test_cognito_user_creation.py::test_create_cognito_user_invalid_password PASSED [ 93%]
+tests/users/test_cognito_user_creation.py::test_create_cognito_user_username_exists PASSED [ 93%]
+tests/users/test_cognito_user_creation.py::test_create_cognito_user_confirm_with_retries_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.registration.cognito:cognito.py:31 Cognito sign-up successful: 12345
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 1 failed, retrying in 1s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 2 failed, retrying in 2s...
+INFO     voice_core.users.registration.cognito:cognito.py:42 Cognito user confirmed: test@example.com
+INFO     voice_core.users.registration.cognito:cognito.py:54 Cognito user confirmed: test@example.com 
+PASSED                                                                   [ 94%]
+tests/users/test_cognito_user_creation.py::test_delete_cognito_user_success 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.registration.cognito:cognito.py:82 User found for deletion: test@example.com
+INFO     voice_core.users.registration.cognito:cognito.py:90 Cognito user deleted successfully: test@example.com
+PASSED                                                                   [ 95%]
+tests/users/test_cognito_user_creation.py::test_create_cognito_user_generic_client_error 
+-------------------------------- live log call ---------------------------------
+ERROR    voice_core.users.registration.cognito:cognito.py:70 Failed to create Cognito user: An error occurred (Unknown) when calling the SignUp operation: Something went wrong
+Traceback (most recent call last):
+  File "/app/voice_core/users/registration/cognito.py", line 21, in create_cognito_user
+    response = client.sign_up(
+               ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+botocore.exceptions.ClientError: An error occurred (Unknown) when calling the SignUp operation: Something went wrong
+PASSED                                                                   [ 96%]
+tests/users/test_cognito_user_creation.py::test_create_cognito_user_confirm_failure_with_cleanup 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.registration.cognito:cognito.py:31 Cognito sign-up successful: 12345
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 1 failed, retrying in 1s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 2 failed, retrying in 2s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 3 failed, retrying in 4s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 4 failed, retrying in 8s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 5 failed, retrying in 16s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 6 failed, retrying in 32s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 7 failed, retrying in 64s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 8 failed, retrying in 128s...
+WARNING  voice_core.users.registration.cognito:cognito.py:47 Confirmation attempt 9 failed, retrying in 256s...
+WARNING  voice_core.users.registration.cognito:cognito.py:50 Confirmation attempt failed: exception An error occurred (Unknown) when calling the AdminConfirmSignUp operation: Confirmation failed
+ERROR    voice_core.users.registration.cognito:cognito.py:70 Failed to create Cognito user: Failed to confirm Cognito user
+Traceback (most recent call last):
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/app/voice_core/users/registration/cognito.py", line 38, in create_cognito_user
+    client.admin_confirm_sign_up(
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+botocore.exceptions.ClientError: An error occurred (Unknown) when calling the AdminConfirmSignUp operation: Confirmation failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/app/voice_core/users/registration/cognito.py", line 51, in create_cognito_user
+    raise Exception("Failed to confirm Cognito user")  # <-- explicit message
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Exception: Failed to confirm Cognito user
+PASSED                                                                   [ 96%]
+tests/users/test_cognito_user_creation.py::test_delete_cognito_user_not_found 
+-------------------------------- live log call ---------------------------------
+WARNING  voice_core.users.registration.cognito:cognito.py:95 Cognito user not found for deletion: test@example.com
+PASSED                                                                   [ 97%]
+tests/users/test_mock_managers.py::test_rollback_on_failure_deletes_from_all_services 
+-------------------------------- live log call ---------------------------------
+INFO     voice_core.users.managers:managers.py:186 Starting rollback for failed user creation: test@example.com
+INFO     voice_core.users.managers:managers.py:193 Deleted user from Django DB: test@example.com
+INFO     voice_core.users.managers:managers.py:203 Deleted user from Cognito: test@example.com
+INFO     voice_core.users.managers:managers.py:213 Deleted user from Wazo: test@example.com
+PASSED                                                                   [ 98%]
+tests/users/test_mock_managers.py::test_create_user_with_no_email_raises_value_error PASSED [ 99%]
+tests/users/test_models.py::test_user_get_absolute_url SKIPPED (Skip...) [100%]
+
+=============================== warnings summary ===============================
+tests/tenant/api/test_views.py: 15 warnings
+tests/users/api/views/test_tenant_user_views.py: 6 warnings
+  /usr/local/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /app/staticfiles/
+    mw_instance = middleware(adapted_handler)
+
+tests/tenant/api/test_views.py::test_tenant_create_conflict_when_preexists
+  /app/voice_core/tenant/api/views.py:73: RemovedInDjango60Warning: LogEntryManager.log_action() is deprecated. Use log_actions() instead.
+    LogEntry.objects.log_action(
+
+tests/tenant/api/test_views.py::test_tenant_partial_update_generic_error_returns_400
+  /app/voice_core/tenant/api/views.py:122: RemovedInDjango60Warning: LogEntryManager.log_action() is deprecated. Use log_actions() instead.
+    LogEntry.objects.log_action(
+
+tests/users/test_managers.py::TestUserManager::test_create_superuser
+  /usr/local/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1665: RuntimeWarning: DateTimeField User.wazo_provisioned_at received a naive datetime (2025-08-27 09:18:06.067692) while time zone support is active.
+    warnings.warn(
+
+tests/users/test_managers.py::TestUserManager::test_create_superuser_username_ignored
+  /usr/local/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1665: RuntimeWarning: DateTimeField User.wazo_provisioned_at received a naive datetime (2025-08-27 09:18:06.542114) while time zone support is active.
+    warnings.warn(
+
+tests/users/test_managers.py::TestUserManager::test_createsuperuser_command
+  /usr/local/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1665: RuntimeWarning: DateTimeField User.wazo_provisioned_at received a naive datetime (2025-08-27 09:18:06.619860) while time zone support is active.
+    warnings.warn(
+
+tests/services/extensions/test_assign_extension.py::test_assign_extension_missing_tenant_uuid_raises
+tests/services/extensions/test_assign_extension.py::test_assign_extension_missing_user_uuid_raises
+tests/services/extensions/test_assign_extension.py::test_assign_extension_step_failures_raise[assign_line_with_sip_endpoint-False]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_step_failures_raise[assign_line_with_extension-False]
+tests/services/extensions/test_assign_extension.py::test_assign_extension_step_failures_raise[assign_user_with_line-False]
+tests/services/wazo_helpers/test_wazo_extensions.py::test_create_sip_endpoint_non_201_raises
+  /usr/local/lib/python3.12/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host '35.169.30.120'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========== 116 passed, 16 skipped, 32 warnings in 3721.15s (1:02:01) ===========

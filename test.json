@@ -1,0 +1,28 @@
+		# 7) Create voicemail only if a PIN is provided
+		enabled_flag = False
+		if voicemail_pin is not None:
+			voicemail_id, voicemail_pin, enabled_flag = create_user_voicemail(
+					wazo_user_id=str(user.wazo_user_id),
+					tenant_uuid=tenant_uuid,
+					admin_token=admin_token,
+					context_name=resolved_context_name,
+					email=user.email,
+					extension_number=str(extension_int),
+					pin=voicemail_pin,
+					name=user.name,
+					max_messages = voicemail_max_messages if voicemail_max_messages is not None else 10,
+				)
+		create_user_voicemail_end_time = datetime.now()
+
+		# 8) Persist local assignment
+		assignment = ExtensionAssignment.objects.create(
+			extension=str(extension_int),
+			sip_username=sip_username,
+			sip_password=sip_password,
+			user=user,
+			wazo_line_id=line_id,
+			context_name=context_name,
+			voicemail_id = voicemail_id,
+			voicemail_pin = voicemail_pin,
+			voicemail_enabled = enabled_flag
+		)

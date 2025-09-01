@@ -15,10 +15,10 @@ class ConfigureVoicemailSerializer(serializers.Serializer):
         if value is None:
             return VOICEMAIL_DEFAULT_MAX_MESSAGES  # Set default max_messages when not given
 
-        if value <= 0:
+        if int(value) <= 0:
             raise serializers.ValidationError("voicemail_max_messages must be greater than zero.")
-        
-        if value > int(VOICEMAIL_LIMIT_MAX_MESSAGES):
+
+        if int(value) > int(VOICEMAIL_LIMIT_MAX_MESSAGES):
             raise serializers.ValidationError("voicemail_max_messages must be less than or equal to VOICEMAIL_LIMIT_MAX_MESSAGES.")
 
         return value
