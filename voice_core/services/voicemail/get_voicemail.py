@@ -134,7 +134,6 @@ def get_voicemails_by_folder(
         raise
 
 
-
 def get_voicemail_recording(
     tenant,
     user,
@@ -142,52 +141,29 @@ def get_voicemail_recording(
     message_id: str,
 ):
     """
-    Fetch a specific voicemail message audio (binary content) for a user.
-    Returns a tuple: (binary_content, content_type)
+    Return (chunk_iterator, headers) for proxy streaming.
     """
-    admin_token = None
-    tenant_uuid = None
-
     try:
-        if not tenant.wazo_tenant_uuid:
+        if not getattr(tenant, "wazo_tenant_uuid", None):
             raise ValidationError("Tenant is missing wazo_tenant_uuid")
-        tenant_uuid = str(tenant.wazo_tenant_uuid)
 
-        try:
-            assignment = VoicemailAssignment.objects.get(user=user, voicemail_id=voicemail_id)
-        except VoicemailAssignment.DoesNotExist:
+        # Validate ownership/assignment
+        assignment = VoicemailAssignment.objects.filter(user=user, voicemail_id=voicemail_id).first()
+        if not assignment:
             raise ValidationError("Voicemail not assigned to this user.")
 
         admin_token = get_wazo_admin_token()
 
-        logger.info(
-            f"Fetching voicemail recording | tenant_id={tenant.id}, user_id={user.id}, "
-            f"voicemail_id={voicemail_id}, message_id={message_id}"
-        )
-        start_time = datetime.now()
-
-        recording, content_type = fetch_voicemail_recording(
+        chunks_iter, headers = fetch_voicemail_recording(
+            admin_token=admin_token,
             voicemail_id=voicemail_id,
             message_id=message_id,
-            admin_token=admin_token,
         )
-
-        if recording is None:
-            return None, None
-        end_time = datetime.now()
-        duration = (end_time - start_time).total_seconds()
-
-        logger.info(
-            f"Fetched voicemail recording in {duration:.3f}s | tenant_id={tenant.id}, "
-            f"user_id={user.id}, voicemail_id={voicemail_id}, message_id={message_id}"
-        )
-
-        return recording, content_type
-
+        return chunks_iter, headers
     except Exception as e:
         logger.error(
-            f"Error fetching voicemail recording | tenant_id={tenant.id}, "
+            f"Error fetching voicemail recording | tenant_id={getattr(tenant, 'id', 'unknown')}, "
             f"user_id={getattr(user, 'id', 'unknown')}, voicemail_id={voicemail_id}, message_id={message_id}: {e}",
             exc_info=True,
         )
-        raise
+        raise 

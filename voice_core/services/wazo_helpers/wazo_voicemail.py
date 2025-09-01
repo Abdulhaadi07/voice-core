@@ -1,6 +1,6 @@
 from django.core import serializers
 import requests
-from typing import Tuple
+from typing import Iterator, Tuple, Dict, Optional
 from config.settings.base import WAZO_API_URL
 from voice_core.services.wazo_helpers.wazo_context import create_context
 
@@ -88,14 +88,11 @@ def update_voicemail_as_read(
         return None
 
 
-
-
-def fetch_voicemail_recording(
-    admin_token: str, voicemail_id: int, message_id: str
-) -> Tuple[bytes, str] | None:
+def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: str) -> Tuple[Optional[Iterator[bytes]], Optional[Dict[str, str]]]:
     """
-    Fetch a voicemail message recording (audio/wav).
-    Returns a tuple: (binary_content, content_type)
+    Option 3: Proxy Streaming
+    Returns (chunk_iterator, headers) to stream from upstream without buffering.
+    headers includes Content-Type/Content-Length/Content-Disposition if present.
     """
     url = f"{WAZO_API_URL}/api/calld/1.0/voicemails/{voicemail_id}/messages/{message_id}/recording"
     headers = {
@@ -107,12 +104,36 @@ def fetch_voicemail_recording(
         resp = requests.get(url, headers=headers, timeout=20, stream=True, verify=False)
         resp.raise_for_status()
 
-        content_type = resp.headers.get("Content-Type", "audio/wav")
-        return resp.content, content_type
+        # Build a safe iterator that closes the response when done
+        def _iter() -> Iterator[bytes]:
+            try:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    if chunk:
+                        yield chunk
+            finally:
+                try:
+                    resp.close()
+                except Exception:
+                    pass
+
+        out_headers: Dict[str, str] = {}
+        ct = resp.headers.get("Content-Type")
+        if ct:
+            out_headers["Content-Type"] = ct
+        cl = resp.headers.get("Content-Length")
+        if cl:
+            out_headers["Content-Length"] = cl
+        cd = resp.headers.get("Content-Disposition")
+        if cd:
+            out_headers["Content-Disposition"] = cd
+
+        # Default content type if missing
+        out_headers.setdefault("Content-Type", "audio/wav")
+
+        return _iter(), out_headers
     except requests.RequestException as e:
         logger.error(
-            f"Failed to fetch voicemail recording "
-            f"(voicemail_id={voicemail_id}, message_id={message_id}): {e}, "
-            f"response={_truncate(getattr(e.response, 'text', ''))}"
+            f"Failed to fetch voicemail recording (voicemail_id={voicemail_id}, message_id={message_id}): "
+            f"{e}, response={_truncate(getattr(e.response, 'text', ''))}"
         )
         return None, None

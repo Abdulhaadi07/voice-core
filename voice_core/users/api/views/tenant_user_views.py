@@ -11,7 +11,7 @@ from drf_spectacular.utils import (
     extend_schema,
     OpenApiResponse,
 )
-from rest_framework import generics, viewsets
+from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
@@ -176,7 +176,10 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 "Failed to update tenant user",
                 extra={"tenant_id": tenant.id, "user_id": user.id, "error": str(e)},
             )
-            raise
+            return Response(
+                {"detail": f"User update request failed: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     @extend_schema(
         summary="List Tenant Users",
@@ -219,5 +222,8 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 "Failed to create tenant user",
                 extra={"tenant_id": tenant.id, "error": str(e)},
             )
-            raise
+            return Response(
+                {"detail": f"User creation failed: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     

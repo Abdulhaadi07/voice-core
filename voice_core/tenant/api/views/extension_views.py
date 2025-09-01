@@ -96,8 +96,6 @@ class ExtensionViewSet(viewsets.GenericViewSet):
     )
 	@action(detail=False, methods=["post"], url_path="assign")
 	def assign(self, request, tenant_id=None, user_id=None):
-
-
 		logger.info(f"Assign extension requested tenant_id={tenant_id}, user_id={user_id}")
 		if not tenant_id or not user_id:
 			return Response({"detail": "tenant_id and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
