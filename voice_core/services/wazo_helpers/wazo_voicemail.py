@@ -26,7 +26,7 @@ def _headers(admin_token: str, tenant_uuid: str | None = None) -> dict:
     return headers
 
 
-def fetch_voicemail_all_recordings(admin_token: str, voicemail_id: int
+def fetch_all_voicemail(admin_token: str, voicemail_id: int
 ) -> dict | None:
     """
     Fetch all recordings for a given voicemail ID.
@@ -46,7 +46,7 @@ def fetch_voicemail_all_recordings(admin_token: str, voicemail_id: int
         return None
 
 
-def fetch_voicemail_recordings_by_folder(admin_token: str, voicemail_id: int, folder_id: int
+def fetch_voicemails_by_folder(admin_token: str, voicemail_id: int, folder_id: int
 ) -> dict | None:
     """
     Fetch voicemail recordings from a specific folder (e.g., inbox, old, deleted).

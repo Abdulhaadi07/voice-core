@@ -13,8 +13,8 @@ from voice_core.users.models import (
 )
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.services.wazo_helpers.wazo_voicemail import (
-	fetch_voicemail_all_recordings,
-	fetch_voicemail_recordings_by_folder,
+	fetch_all_voicemail,
+	fetch_voicemails_by_folder,
     fetch_voicemail_recording,
 )
 
@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_voicemail_all_recordings(
+def get_all_voicemails(
     tenant,
     user,
     voicemail_id: int,
@@ -54,7 +54,7 @@ def get_voicemail_all_recordings(
         start_time = datetime.now()
 
         # Call Wazo API to fetch voicemail recordings
-        all_voicemails = fetch_voicemail_all_recordings(
+        all_voicemails = fetch_all_voicemail(
             voicemail_id=voicemail_id,
             admin_token=admin_token,
         )
@@ -81,10 +81,10 @@ def get_voicemail_all_recordings(
 
 
 
-# def get_voicemail_recordings_by_folder,
+# def get_voicemails_by_folder,
 # def get_voicemail_recording,
 
-def get_voicemail_recordings_by_folder(
+def get_voicemails_by_folder(
     tenant,
     user,
     voicemail_id: int,
@@ -114,7 +114,7 @@ def get_voicemail_recordings_by_folder(
         )
         start_time = datetime.now()
 
-        recordings = fetch_voicemail_recordings_by_folder(
+        recordings = fetch_voicemails_by_folder(
             voicemail_id=voicemail_id,
             folder_id=folder_id,
             admin_token=admin_token,

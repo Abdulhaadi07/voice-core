@@ -17,7 +17,7 @@ def set_voicemail_as_read(
     folder_id: int = 2,  # default to "Old" folder
 ) -> dict:
     """
-    Mark a voicemail message as read by moving it to the specified folder.
+    Mark a voicemail message as read/unread by moving it to the specified folder.
     """
     try:
         # Validate tenant
@@ -34,7 +34,7 @@ def set_voicemail_as_read(
         admin_token = get_wazo_admin_token()
 
         logger.info(
-            f"Marking voicemail message as read | tenant_id={tenant.id}, user_id={user.id}, "
+            f"Marking voicemail message has been moved another folder | tenant_id={tenant.id}, user_id={user.id}, "
             f"voicemail_id={voicemail_id}, message_id={message_id}, folder_id={folder_id}"
         )
         start_time = datetime.now()
@@ -50,7 +50,7 @@ def set_voicemail_as_read(
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         logger.info(
-            f"Voicemail message marked as read in {duration:.3f}s | "
+            f"Voicemail message has been moved another folder in {duration:.3f}s | "
             f"tenant_id={tenant.id}, user_id={user.id}, voicemail_id={voicemail_id}, message_id={message_id}"
         )
 
@@ -58,8 +58,8 @@ def set_voicemail_as_read(
 
     except Exception as e:
         logger.error(
-            f"Error marking voicemail as read | tenant_id={tenant.id}, user_id={getattr(user, 'id', 'unknown')}, "
-            f"voicemail_id={voicemail_id}, message_id={message_id}: {e}",
+            f"Error moving voicemail message to another folder | tenant_id={tenant.id}, user_id={getattr(user, 'id', 'unknown')}, "
+            f"voicemail_id={voicemail_id}, message_id={message_id}, folder_id={folder_id}: {e}",
             exc_info=True,
         )
         raise

@@ -27,8 +27,8 @@ from voice_core.services.voicemail.assign_voicemail import (
     assign_voicemail
 )
 from voice_core.services.voicemail.get_voicemail import (
-    get_voicemail_all_recordings,
-    get_voicemail_recordings_by_folder,
+    get_all_voicemails,
+    get_voicemails_by_folder,
     get_voicemail_recording,
 )
 
@@ -119,11 +119,9 @@ class VoicemailViewSet(viewsets.GenericViewSet):
             if not IsPlatformAdminOrTenantAdmin().has_permission(request, self):
                 raise PermissionDenied("You are not authorized to access this voicemail.")
 
-
         voicemail_config = VoicemailAssignment.objects.filter(user=user)
         if not voicemail_config.exists():
             return Response({"detail": "No voicemail assigned for this user"}, status=status.HTTP_404_NOT_FOUND)
-
         serializer = VoicemailSerializer(instance=voicemail_config.first())
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -143,8 +141,9 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         if not voicemail:
             return Response({"detail": "No voicemail assigned"}, status=status.HTTP_404_NOT_FOUND)
 
-        data = get_voicemail_all_recordings(user.tenant, user, voicemail.voicemail_id)
-
+        data = get_all_voicemails(
+            user.tenant, user, voicemail.voicemail_id
+        )
         if data is None:
             return Response({"detail": "Invalid Action"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(data, status=status.HTTP_200_OK)
@@ -169,7 +168,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         if not voicemail:
             return Response({"detail": "No voicemail assigned"}, status=status.HTTP_404_NOT_FOUND)
 
-        data = get_voicemail_recordings_by_folder(
+        data = get_voicemails_by_folder(
             user.tenant, user, voicemail.voicemail_id, int(folder_id)
         )
         if data is None:
@@ -197,11 +196,9 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         data = set_voicemail_as_read(
             user.tenant, user, voicemail.voicemail_id, message_id, folder_id
         )
-
         if data is None:
             return Response({"detail": "Invalid Action"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        
-        return Response(data, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_204_NO_CONTENT)
 
     # only owner access
     @action(
@@ -223,7 +220,6 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         recording, content_type = get_voicemail_recording(
             user.tenant, user, voicemail.voicemail_id, message_id
         )
-
         if recording is None:
             return Response({"detail": "Invalid Action"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
