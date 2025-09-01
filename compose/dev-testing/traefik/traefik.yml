@@ -16,7 +16,7 @@ http:
   routers:
     # HTTP-only router (no TLS)
     web-router:
-      rule: 'Host(`localhost`) || Host(`127.0.0.1`) || Host(`0.0.0.0`)'
+      rule: 'Host(`localhost`) || Host(`127.0.0.1`) || Host(`0.0.0.0`) || Host(`18.212.50.132`)'
       entryPoints:
         - web
       middlewares:
@@ -25,7 +25,7 @@ http:
       # NO TLS configuration
 
     flower-router:
-      rule: 'Host(`localhost`) || Host(`127.0.0.1`) || Host(`0.0.0.0`)'
+      rule: 'Host(`localhost`) || Host(`127.0.0.1`) || Host(`0.0.0.0`) || Host(`18.212.50.132`)'
       entryPoints:
         - flower
       service: flower
