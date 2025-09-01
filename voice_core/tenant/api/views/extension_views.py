@@ -5,7 +5,11 @@ from django.contrib.admin.models import (
     LogEntry, 
 )
 from django.contrib.contenttypes.models import ContentType
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+)
 from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser
@@ -40,6 +44,18 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 			return AssignExtensionSerializer
 		return super().get_serializer_class()
 
+	@extend_schema(
+        summary="Get available extensions",
+        description=(
+            "Retrieve a list of available extensions for a given tenant, grouped by contexts.\n\n"
+            "**Access:** Platform Admin or Tenant Admin"
+        ),
+        responses={
+            200: AvailableExtensionsSerializer,
+            400: OpenApiResponse(description="Missing or invalid tenant_id"),
+            500: OpenApiResponse(description="Failed to retrieve available extensions"),
+        },
+    )
 	@action(detail=False, methods=["get"], url_path="available")
 	def available(self, request, tenant_id=None):
 		logger.info(f"Getting available extensions for tenant: {tenant_id}")
@@ -56,6 +72,35 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 			logger.error(f"Error getting available extensions for tenant {tenant_id}: {e}")
 			return Response({"detail": "Failed to retrieve available extensions"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+	@extend_schema(
+        summary="Assign an extension to a user",
+        description=(
+            "Assign a specific extension, SIP credentials, and optional voicemail settings "
+            "to a user within a tenant.\n\n"
+            "**Access:** Platform Admin or Tenant Admin"
+        ),
+        request=AssignExtensionSerializer,
+        responses={
+            201: OpenApiResponse(
+                description="Extension assigned successfully",
+                response={
+                    "type": "object",
+                    "properties": {
+                        "message": {"type": "string"},
+                        "user_id": {"type": "integer"},
+                        "tenant_id": {"type": "integer"},
+                        "line_id": {"type": "string"},
+                        "extension": {"type": "string"},
+                        "sip_username": {"type": "string"},
+                        "context_name": {"type": "string"},
+                    },
+                },
+            ),
+            400: OpenApiResponse(description="Validation error (e.g. missing tenant_id, user_id, or bad context)"),
+            404: OpenApiResponse(description="User not found"),
+            409: OpenApiResponse(description="Extension or SIP username already in use"),
+        },
+    )
 	@action(detail=False, methods=["post"], url_path="assign")
 	def assign(self, request, tenant_id=None, user_id=None):
 

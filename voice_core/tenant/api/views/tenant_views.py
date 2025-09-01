@@ -5,7 +5,12 @@ from django.contrib.admin.models import (
     LogEntry, 
 )
 from django.contrib.contenttypes.models import ContentType
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter, 
+    OpenApiExample, 
+    OpenApiResponse
+)
 from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser
@@ -52,7 +57,19 @@ class TenantViewSet(
             )
         return queryset
 
-
+    @extend_schema(
+        summary="Create a new Tenant",
+        description=(
+            "Create a new Tenant with Wazo API integration.\n\n"
+            "**Access:** Platform Admin only"
+        ),
+        request=TenantSerializer,
+        responses={
+            201: TenantSerializer,
+            400: OpenApiResponse(description="Bad request"),
+            409: OpenApiResponse(description="Tenant already exists or validation error"),
+        },
+    )
     def create(self, request, *args, **kwargs):
         """
         Create a new Tenant with Wazo API integration requesting by platform admin.
@@ -103,6 +120,18 @@ class TenantViewSet(
             )
             return Response(e.detail, status=status.HTTP_409_CONFLICT)
 
+    @extend_schema(
+        summary="Update tenant partially",
+        description=(
+            "Update specific fields of a tenant (name, domain, max_users, status).\n\n"
+            "**Access:** Platform Admin only"
+        ),
+        request=TenantSerializer,
+        responses={
+            200: TenantSerializer,
+            400: OpenApiResponse(description="Failed to update tenant"),
+        },
+    )
     def partial_update(self, request, *args, **kwargs):
         try:
             tenant = self.get_object()
@@ -139,3 +168,37 @@ class TenantViewSet(
                 status=status.HTTP_400_BAD_REQUEST
             )
 	
+    @extend_schema(
+        summary="List all tenants",
+        description=(
+            "Retrieve a list of all tenants.\n\n"
+            "Supports optional search filter by name or domain.\n\n"
+            "**Access:** Platform Admin only"
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="search",
+                description="Filter tenants by name or domain (case-insensitive)",
+                required=False,
+                type=str,
+                location=OpenApiParameter.QUERY,
+            ),
+        ],
+        responses={200: TenantSerializer(many=True)},
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Retrieve a tenant",
+        description=(
+            "Retrieve details of a specific tenant by ID.\n\n"
+            "**Access:** Platform Admin only"
+        ),
+        responses={
+            200: TenantSerializer,
+            404: OpenApiResponse(description="Tenant not found"),
+        },
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)

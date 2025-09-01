@@ -4,7 +4,10 @@ from django.contrib.admin.models import (
 ) 
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiResponse,
+)
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
@@ -36,7 +39,15 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
         return self.request.user
 
     @extend_schema(
-        responses=UserDetailSerializer
+        summary="Get current user details",
+        description=(
+            "Retrieve details of the currently authenticated user.\n\n"
+            "**Access:** Authenticated users only."
+        ),
+        responses={
+            200: UserDetailSerializer,
+            401: OpenApiResponse(description="Authentication required"),
+        },
     )
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def me(self, request):
@@ -48,8 +59,30 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
     @extend_schema(
         tags=["Role Management"],
         summary="Assign Platform Role to User",
-        description="Assign a platform role (admin, supervisor, agent) to a user. This will replace any existing platform roles.",
+        description=(
+            "Assign a platform role (`admin`, `supervisor`, `agent`) to a user. "
+            "This will replace any existing platform roles.\n\n"
+            "**Access:** Admin users only."
+        ),
         request=RoleAssignmentSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="Role assigned successfully",
+                response={
+                    "type": "object",
+                    "properties": {
+                        "message": {"type": "string"},
+                        "roles": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
+                },
+            ),
+            400: OpenApiResponse(description="Validation error (invalid role or request body)"),
+            403: OpenApiResponse(description="Forbidden – only admins can assign roles"),
+            404: OpenApiResponse(description="User not found"),
+        },
     )
     @action(
         detail=True,
@@ -85,3 +118,18 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Register a new user",
+        description=(
+            "Create a new user in the system (sign up).\n\n"
+            "**Access:** Public (no authentication required)."
+        ),
+        request=UserSerializer,
+        responses={
+            201: UserDetailSerializer,
+            400: OpenApiResponse(description="Validation error (invalid or missing fields)"),
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        """Signup endpoint at POST /api/users/"""
+        return super().create(request, *args, **kwargs)

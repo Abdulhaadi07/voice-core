@@ -4,7 +4,12 @@ from django.contrib.admin.models import (
     CHANGE,
     LogEntry, 
 )
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter, 
+    OpenApiExample, 
+    OpenApiResponse
+)
 from rest_framework import status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
@@ -38,7 +43,6 @@ from voice_core.services.voicemail.update_voicemail import set_voicemail_as_read
 import logging
 logger = logging.getLogger(__name__)
 
-
 @extend_schema(tags=["Voicemail Management"])
 class VoicemailViewSet(viewsets.GenericViewSet):
     serializer_class = VoicemailSerializer  # default serializer
@@ -59,6 +63,20 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         return super().get_serializer_class()
     
     # superadmin/tenantadmin access
+    @extend_schema(
+        summary="Set voicemail configuration of a User",
+        description=(
+            "Assign or update voicemail configuration (PIN, max messages) for a user.\n\n"
+            "**Access:** SuperAdmin, TenantAdmin"
+        ),
+        request=ConfigureVoicemailSerializer,
+        responses={
+            200: OpenApiResponse(description="Voicemail successfully assigned"),
+            400: OpenApiResponse(description="Invalid input"),
+            404: OpenApiResponse(description="User not found"),
+            500: OpenApiResponse(description="Voicemail assignment failed"),
+        },
+    )
     @action(detail=True, methods=["post"], url_path="", url_name="set_voicemail_configure")
     def set_voicemail_configure(self, request, tenant_id=None, user_id=None):
         logger.info(f"Assign voicemail requested tenant_id={tenant_id}, user_id={user_id}")
@@ -97,6 +115,19 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         return Response({"detail": "Voicemail successfully assigned"}, status=status.HTTP_200_OK)
 
     # superadmin/owner/tenantadmin access
+    @extend_schema(
+        summary="Retrieve voicemail configuration of a User",
+        description=(
+            "Get voicemail configuration details for a specific user.\n\n"
+            "**Access:** Owner, SuperAdmin, TenantAdmin"
+        ),
+        responses={
+            200: VoicemailSerializer,
+            400: OpenApiResponse(description="Invalid tenant_id or user_id"),
+            403: OpenApiResponse(description="Not authorized"),
+            404: OpenApiResponse(description="User or voicemail not found"),
+        },
+    )
     @action(detail=True, methods=["get"], url_path="", url_name="get_voicemail")
     def get_voicemail(self, request, tenant_id=None, user_id=None):
         logger.info(f"Assign voicemail requested tenant_id={tenant_id}, user_id={user_id}")
@@ -127,6 +158,18 @@ class VoicemailViewSet(viewsets.GenericViewSet):
 
 
     # superadmin/owner/tenantadmin access
+    @extend_schema(
+        summary="Retrieve all voicemails for a User",
+        description=(
+            "Retrieve all voicemail messages assigned to a user.\n\n"
+            "**Access:** Owner, SuperAdmin, TenantAdmin"
+        ),
+        responses={
+            200: AllVoicemailSerializer,
+            403: OpenApiResponse(description="Not authorized"),
+            404: OpenApiResponse(description="User or voicemail not found"),
+        },
+    )
     @action(detail=True, methods=["get"], url_path="messages", url_name="get_all_voicemail")
     def get_all_voicemail(self, request, tenant_id=None, user_id=None):
         try:
@@ -149,6 +192,18 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         return Response(data, status=status.HTTP_200_OK)
 
     # superadmin/owner/tenantadmin access
+    @extend_schema(
+        summary="Retrieve voicemails by folder",
+        description=(
+            "Retrieve voicemail messages from a specific folder (e.g., Inbox, Deleted, Saved).\n\n"
+            "**Access:** Owner, SuperAdmin, TenantAdmin"
+        ),
+        responses={
+            200: RecordingsFolderSerializer,
+            403: OpenApiResponse(description="Not authorized"),
+            404: OpenApiResponse(description="User or voicemail not found"),
+        },
+    )
     @action(
         detail=True,
         methods=["get"],
@@ -176,6 +231,21 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         return Response(data, status=status.HTTP_200_OK)
 
     # only owner access
+    @extend_schema(
+        summary="Voicemail marked as read/unread",
+        description=(
+            "Move a voicemail message to the read/unread folder.\n\n"
+            "**Access:** Owner only.\n\n"
+            "Folder 1: unread.\n\n"
+            "Folder 2: read."
+        ),
+        request=UpdateVoicemailSerializer,
+        responses={
+            204: OpenApiResponse(description="voicemail has been moved successfully"),
+            404: OpenApiResponse(description="User or voicemail not found"),
+            503: OpenApiResponse(description="Invalid Action"),
+        },
+    )
     @action(
         detail=True,
         methods=["put"],
@@ -201,6 +271,18 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         return Response(data, status=status.HTTP_204_NO_CONTENT)
 
     # only owner access
+    @extend_schema(
+        summary="Retrieve voicemail recording",
+        description=(
+            "Retrieve and stream the audio recording of a voicemail message.\n\n"
+            "**Access:** Owner only"
+        ),
+        responses={
+            200: OpenApiResponse(description="Binary audio stream (audio/wav, audio/mp3, etc.)"),
+            404: OpenApiResponse(description="User or voicemail not found"),
+            503: OpenApiResponse(description="Invalid Action"),
+        },
+    )
     @action(
         detail=True,
         methods=["get"],

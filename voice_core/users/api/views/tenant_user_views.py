@@ -41,13 +41,16 @@ class TenantUserViewSet(viewsets.GenericViewSet,
     """
     permission_classes = [IsPlatformAdminOrTenantAdmin]
     lookup_field = "user_id"
-
+    serializer = UserListSerializer
     def get_serializer_class(self):
         if self.action == "create":
+            self.serializer = UserCreateSerializer
             return UserCreateSerializer
         if self.action == "retrieve":
+            self.serializer = UserDetailSerializer
             return UserDetailSerializer
         if self.action == "partial_update":
+            self.serializer = UserUpdateSerializer
             return UserUpdateSerializer
         return UserListSerializer
 
@@ -67,34 +70,42 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         context["tenant_id"] = self.kwargs.get("tenant_id")
         return context
 
-    def perform_create(self, serializer):
-        tenant_id = self.kwargs.get("tenant_id")
-        tenant = get_object_or_404(Tenant, id=tenant_id)
+    @extend_schema(
+        summary="Create Tenant User",
+        description=(
+            "Create a new user under the specified tenant. "
+            "You can assign a tenant role (default is `agent`).\n\n"
+            "**Access:** Platform Admin or Tenant Admin"
+        ),
+        request=UserCreateSerializer,
+        responses={
+            201: UserDetailSerializer,
+            400: "Bad request",
+            409: "Conflict – user already exists or validation error",
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            UserDetailSerializer(user, context=self.get_serializer_context()).data,
+            status=201,
+            headers=headers,
+        )
 
-        tenant_role = serializer.validated_data.get("tenant_role", "agent")
-
-        try:
-            user = serializer.save(tenant=tenant, tenant_role=tenant_role)
-            logger.info(
-                f"Tenant user created. Tenant_id: {tenant.id}, user_id: {user.id}, email: {user.email}, tenant_role: {user.tenant_role}"
-            )
-            # Admin audit log for creation
-            LogEntry.objects.log_action(
-                user_id=self.request.user.pk,
-                content_type_id=ContentType.objects.get_for_model(User).pk,
-                object_id=user.pk,
-                object_repr=str(user),
-                action_flag=ADDITION,
-                change_message=f"Created tenant user in tenant {tenant.id}",
-            )
-            return user
-        except Exception as e:
-            logger.error(
-                "Failed to create tenant user",
-                extra={"tenant_id": tenant.id, "error": str(e)},
-            )
-            raise
-
+    @extend_schema(
+        summary="Retrieve Tenant User",
+        description=(
+            "Get detailed information about a specific user belonging to a tenant.\n\n"
+            "**Access:** Platform Admin or Tenant Admin"
+        ),
+        responses={
+            200: UserDetailSerializer,
+            404: "User not found",
+        },
+    )
     def retrieve(self, request, *args, **kwargs):
         user_id = self.kwargs.get("user_id")
         tenant_id = self.kwargs.get("tenant_id")
@@ -108,6 +119,19 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         serializer = UserDetailSerializer(user, context=self.get_serializer_context())
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Update Tenant User",
+        description=(
+            "Partially update fields of a user belonging to a tenant. "
+            "Supports updating fields like `name`, `email`, or `tenant_role`.\n\n"
+            "**Access:** Platform Admin or Tenant Admin"
+        ),
+        request=UserUpdateSerializer,
+        responses={
+            200: UserDetailSerializer,
+            400: "Failed to update tenant user",
+        },
+    )
     def partial_update(self, request, *args, **kwargs):
         user_id = self.kwargs.get("user_id")
         tenant_id = self.kwargs.get("tenant_id")
@@ -150,3 +174,47 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 extra={"tenant_id": tenant.id, "user_id": user.id, "error": str(e)},
             )
             raise
+    
+    @extend_schema(
+        summary="List Tenant Users",
+        description=(
+            "Retrieve a list of users belonging to the specified tenant. "
+            "Supports search by email and name using `?search=` query parameter.\n\n"
+            "**Access:** Platform Admin or Tenant Admin"
+        ),
+        responses={
+            200: UserListSerializer,
+            400: "Bad request",
+        },
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        tenant_id = self.kwargs.get("tenant_id")
+        tenant = get_object_or_404(Tenant, id=tenant_id)
+
+        tenant_role = serializer.validated_data.get("tenant_role", "agent")
+
+        try:
+            user = serializer.save(tenant=tenant, tenant_role=tenant_role)
+            logger.info(
+                f"Tenant user created. Tenant_id: {tenant.id}, user_id: {user.id}, email: {user.email}, tenant_role: {user.tenant_role}"
+            )
+            # Admin audit log for creation
+            LogEntry.objects.log_action(
+                user_id=self.request.user.pk,
+                content_type_id=ContentType.objects.get_for_model(User).pk,
+                object_id=user.pk,
+                object_repr=str(user),
+                action_flag=ADDITION,
+                change_message=f"Created tenant user in tenant {tenant.id}",
+            )
+            return user
+        except Exception as e:
+            logger.error(
+                "Failed to create tenant user",
+                extra={"tenant_id": tenant.id, "error": str(e)},
+            )
+            raise
+    
