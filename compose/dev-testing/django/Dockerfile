@@ -33,8 +33,8 @@ ENV BUILD_ENV=${BUILD_ENVIRONMENT}
 WORKDIR ${APP_HOME}
 
 # Create django user (like production)
-RUN addgroup --system django \
-  && adduser --system --ingroup django django
+# RUN addgroup --system django \
+#   && adduser --system --ingroup django django
 
 # Install required system dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -81,6 +81,6 @@ COPY --chown=django:django . ${APP_HOME}
 # make django owner of the WORKDIR directory as well.
 RUN chown -R django:django ${APP_HOME}
 
-USER django
+# USER django
 
 ENTRYPOINT ["/entrypoint"]
