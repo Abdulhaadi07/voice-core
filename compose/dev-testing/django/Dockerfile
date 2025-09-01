@@ -76,10 +76,7 @@ RUN sed -i 's/\r$//g' /start-flower
 RUN chmod +x /start-flower
 
 # copy application code to WORKDIR
-COPY --chown=django:django . ${APP_HOME}
-
-# make django owner of the WORKDIR directory as well.
-RUN chown -R django:django ${APP_HOME}
+COPY . ${APP_HOME}
 
 # USER django
 
