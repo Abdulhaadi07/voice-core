@@ -1,6 +1,4 @@
 from rest_framework import serializers
-from zoneinfo import available_timezones
-from voice_core.tenant.models import Tenant
 from config.settings.base import (
     VOICEMAIL_DEFAULT_MAX_MESSAGES, 
     VOICEMAIL_LIMIT_MAX_MESSAGES, 

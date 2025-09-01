@@ -1,15 +1,7 @@
 from datetime import datetime
-from typing import (
-	Dict,
-	List,
-)
 from rest_framework.exceptions import ValidationError
-
-from voice_core.tenant.models import Tenant
 from voice_core.users.models import (
-	ExtensionAssignment, 
 	VoicemailAssignment,
-	User,
 )
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.services.wazo_helpers.wazo_voicemail import (

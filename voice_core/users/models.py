@@ -68,7 +68,7 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-fernet = Fernet(settings.SIP_ENCRYPTION_KEY)
+fernet = Fernet(SIP_ENCRYPTION_KEY)
 
 
 class UserConfig(models.Model):

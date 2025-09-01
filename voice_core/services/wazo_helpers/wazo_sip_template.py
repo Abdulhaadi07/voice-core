@@ -1,6 +1,5 @@
 import requests
 import time
-from typing import Tuple
 from config.settings.base import (
     GLOBAL_SIP_TEMPLATE_LABEL,
     WAZO_API_URL, 

@@ -1,8 +1,4 @@
 from datetime import datetime
-from typing import (
-	Dict,
-	List,
-)
 from rest_framework.exceptions import ValidationError
 
 from voice_core.tenant.models import Tenant

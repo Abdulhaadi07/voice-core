@@ -8,25 +8,17 @@ from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiParameter, 
-    OpenApiExample, 
     OpenApiResponse
 )
 from rest_framework import mixins, status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.decorators import action
 
-from voice_core.services.extensions.assign_extension import assign_extension
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.services.wazo_helpers.wazo_tenant import get_wazo_tenant_uuid
 from voice_core.tenant.models import Tenant
 from voice_core.tenant.api.serializers.tenant_serializer import TenantSerializer
-from voice_core.tenant.api.serializers.extension_serializer import AvailableExtensionsSerializer
-from voice_core.tenant.api.serializers.extension_serializer import AssignExtensionSerializer
-from voice_core.users.permissions import IsPlatformAdminOrTenantAdmin
-from voice_core.services.extensions.available_extensions import get_available_extensions
-
 from voice_core.users.models import (
 	User, 
 	ExtensionAssignment,

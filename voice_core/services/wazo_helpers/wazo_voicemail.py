@@ -1,9 +1,7 @@
 from django.core import serializers
 import requests
 from typing import Tuple
-import time
 from config.settings.base import WAZO_API_URL
-from voice_core.tenant.models import Tenant
 from voice_core.services.wazo_helpers.wazo_context import create_context
 
 import logging

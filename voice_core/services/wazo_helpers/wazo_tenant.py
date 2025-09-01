@@ -1,4 +1,3 @@
-from django.core import serializers
 import requests
 from typing import Tuple
 import uuid

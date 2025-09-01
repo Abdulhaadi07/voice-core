@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from zoneinfo import available_timezones
 from voice_core.tenant.models import Tenant
 
 

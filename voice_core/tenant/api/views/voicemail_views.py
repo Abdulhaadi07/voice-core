@@ -1,13 +1,6 @@
 from django.db.models import Q
-from django.contrib.admin.models import (
-    ADDITION, 
-    CHANGE,
-    LogEntry, 
-)
 from drf_spectacular.utils import (
     extend_schema,
-    OpenApiParameter, 
-    OpenApiExample, 
     OpenApiResponse
 )
 from rest_framework import status, viewsets
@@ -25,7 +18,6 @@ from voice_core.tenant.api.serializers.voicemail_serializer import (
     VoicemailSerializer,
     RecordingsFolderSerializer,
     UpdateVoicemailSerializer,
-    RecordingsSerializer,
     AllVoicemailSerializer,
 )
 from voice_core.services.voicemail.assign_voicemail import (
@@ -36,9 +28,7 @@ from voice_core.services.voicemail.get_voicemail import (
     get_voicemails_by_folder,
     get_voicemail_recording,
 )
-
 from voice_core.services.voicemail.update_voicemail import set_voicemail_as_read
-
 
 import logging
 logger = logging.getLogger(__name__)
@@ -155,7 +145,6 @@ class VoicemailViewSet(viewsets.GenericViewSet):
             return Response({"detail": "No voicemail assigned for this user"}, status=status.HTTP_404_NOT_FOUND)
         serializer = VoicemailSerializer(instance=voicemail_config.first())
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
     # superadmin/owner/tenantadmin access
     @extend_schema(

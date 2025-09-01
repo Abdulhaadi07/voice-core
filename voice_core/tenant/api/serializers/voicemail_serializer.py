@@ -1,13 +1,10 @@
 from rest_framework import serializers
-from zoneinfo import available_timezones
-
-from voice_core.users.models import VoicemailAssignment
-
 from config.settings.base import (
     VOICEMAIL_DEFAULT_MAX_MESSAGES, 
     VOICEMAIL_LIMIT_MAX_MESSAGES, 
     VOICEMAIL_PIN_MIN_LENGTH,
 )
+from voice_core.users.models import VoicemailAssignment
 
 
 class ConfigureVoicemailSerializer(serializers.Serializer):
@@ -44,7 +41,6 @@ class VoicemailSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
 
-
 class RecordingsSerializer(serializers.Serializer):
     message_id = serializers.CharField()
     caller = serializers.CharField()
@@ -56,6 +52,7 @@ class RecordingsFolderSerializer(serializers.Serializer):
     folder_id = serializers.IntegerField()
     folder_name = serializers.CharField()
     messages_count = serializers.IntegerField()
+
 
 class UpdateVoicemailSerializer(serializers.Serializer):
     folder_id = serializers.IntegerField(default=2)  # Default "Old" folder

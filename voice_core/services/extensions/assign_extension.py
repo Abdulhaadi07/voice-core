@@ -1,8 +1,4 @@
 from datetime import datetime
-from typing import (
-	Dict,
-	List,
-)
 
 from voice_core.tenant.models import Tenant
 from voice_core.users.models import (
