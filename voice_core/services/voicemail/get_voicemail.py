@@ -71,11 +71,6 @@ def get_all_voicemails(
         )
         raise
 
-
-
-# def get_voicemails_by_folder,
-# def get_voicemail_recording,
-
 def get_voicemails_by_folder(
     tenant,
     user,
