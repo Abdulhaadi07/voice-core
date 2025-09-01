@@ -5,12 +5,13 @@ volumes:
   voice_core_dev_postgres_data: {}
   voice_core_dev_postgres_data_backups: {}
   voice_core_dev_redis_data: {}
+  voice_core_dev_traefik: {}
 
 services:
   django: &django
     build:
       context: .
-      dockerfile: ./compose/local/django/Dockerfile
+      dockerfile: ./compose/dev-testing/django/Dockerfile
     image: voice_core_dev_django
     container_name: voice_core_dev_django
     depends_on:
@@ -22,8 +23,6 @@ services:
     env_file:
       - ./.envs/.dev-testing/.django
       - ./.envs/.dev-testing/.postgres
-    ports:
-      - '8000:8000'
     command: /start
     restart: unless-stopped
 
@@ -47,6 +46,21 @@ services:
     container_name: voice_core_dev_redis
     volumes:
       - voice_core_dev_redis_data:/data
+    restart: unless-stopped
+
+  traefik:
+    build:
+      context: .
+      dockerfile: ./compose/dev-testing/traefik/Dockerfile
+    image: voice_core_dev_traefik
+    container_name: voice_core_dev_traefik
+    depends_on:
+      - django
+    volumes:
+      - voice_core_dev_traefik:/etc/traefik/acme
+    ports:
+      - '0.0.0.0:8080:80'
+      - '0.0.0.0:5555:5555'
     restart: unless-stopped
 
   celeryworker:
@@ -75,7 +89,8 @@ services:
     <<: *django
     image: voice_core_dev_flower
     container_name: voice_core_dev_flower
-    ports:
-      - '5555:5555'
+    depends_on:
+      - redis
+      - postgres
     command: /start-flower
     restart: unless-stopped
