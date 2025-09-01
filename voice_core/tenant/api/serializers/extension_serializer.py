@@ -19,14 +19,14 @@ class AssignExtensionSerializer(serializers.Serializer):
     extension = serializers.IntegerField()
     sip_username = serializers.CharField()
     sip_password = serializers.CharField(write_only=True)
-    voicemail_max_messages = serializers.IntegerField(required=False, default=VOICEMAIL_DEFAULT_MAX_MESSAGES)
+    voicemail_max_messages = serializers.IntegerField(required=False, allow_null=True)
     voicemail_pin = serializers.IntegerField(required=False, allow_null=True)
 
     def validate_voicemail_max_messages(self, value):
         if value is None:
             return None  # allow null if not provided
 
-        if value <= 0:
+        if int(value) <= 0:
             raise serializers.ValidationError("voicemail_max_messages must be greater than zero.")
         
         if value > int(VOICEMAIL_LIMIT_MAX_MESSAGES):

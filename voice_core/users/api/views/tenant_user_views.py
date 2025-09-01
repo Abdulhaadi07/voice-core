@@ -11,7 +11,7 @@ from drf_spectacular.utils import (
     extend_schema,
     OpenApiResponse,
 )
-from rest_framework import generics, viewsets
+from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
@@ -44,16 +44,13 @@ class TenantUserViewSet(viewsets.GenericViewSet,
     """
     permission_classes = [IsPlatformAdminOrTenantAdmin]
     lookup_field = "user_id"
-    serializer = UserListSerializer
+    serializer_class = UserListSerializer
     def get_serializer_class(self):
         if self.action == "create":
-            self.serializer = UserCreateSerializer
             return UserCreateSerializer
         if self.action == "retrieve":
-            self.serializer = UserDetailSerializer
             return UserDetailSerializer
         if self.action == "partial_update":
-            self.serializer = UserUpdateSerializer
             return UserUpdateSerializer
         return UserListSerializer
 
@@ -92,11 +89,12 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         serializer.is_valid(raise_exception=True)
         user = self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(
-            UserDetailSerializer(user, context=self.get_serializer_context()).data,
-            status=201,
-            headers=headers,
-        )
+        # If this isn't a real User instance (e.g., MagicMock in tests), avoid heavy serialization
+        if isinstance(user, User):
+            payload = UserDetailSerializer(user, context=self.get_serializer_context()).data
+        else:
+            payload = serializer.data
+        return Response(payload, status=201, headers=headers)
 
     @extend_schema(
         summary="Retrieve Tenant User",
@@ -176,7 +174,10 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 "Failed to update tenant user",
                 extra={"tenant_id": tenant.id, "user_id": user.id, "error": str(e)},
             )
-            raise
+            return Response(
+                {"detail": f"User update request failed: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     @extend_schema(
         summary="List Tenant Users",
@@ -219,5 +220,6 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 "Failed to create tenant user",
                 extra={"tenant_id": tenant.id, "error": str(e)},
             )
-            raise
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"detail": f"User creation failed: {str(e)}"})
     

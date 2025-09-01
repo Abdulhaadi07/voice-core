@@ -108,7 +108,10 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
             logger.info(f"Role assignment success for user_id={updated_user.id}, roles={list(updated_user.groups.values_list('name', flat=True))}")
         except Exception as exc:
             logger.error(f"Role assignment failed for user_id={user.id}: {exc}")
-            raise
+            return Response(
+                {"detail": f"Role assignment failed: {str(exc)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         return Response(
             {

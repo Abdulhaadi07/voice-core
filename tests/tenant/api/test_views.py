@@ -72,9 +72,9 @@ def test_tenant_list_and_search_filter(api_client, staff_user):
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.LogEntry.objects.log_action")
-@patch("voice_core.tenant.api.views.get_wazo_tenant_uuid", return_value=(uuid.uuid4(), False))
-@patch("voice_core.tenant.api.views.get_wazo_admin_token", return_value="adm")
+@patch("voice_core.tenant.api.views.tenant_views.LogEntry.objects.log_action")
+@patch("voice_core.tenant.api.views.tenant_views.get_wazo_tenant_uuid", return_value=(uuid.uuid4(), False))
+@patch("voice_core.tenant.api.views.tenant_views.get_wazo_admin_token", return_value="adm")
 def test_tenant_create_success(mock_token, mock_get_uuid, mock_log, api_client, staff_user):
     api_client.force_authenticate(user=staff_user)
 
@@ -91,8 +91,8 @@ def test_tenant_create_success(mock_token, mock_get_uuid, mock_log, api_client, 
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.get_wazo_tenant_uuid", return_value=(uuid.uuid4(), True))
-@patch("voice_core.tenant.api.views.get_wazo_admin_token", return_value="adm")
+@patch("voice_core.tenant.api.views.tenant_views.get_wazo_tenant_uuid", return_value=(uuid.uuid4(), True))
+@patch("voice_core.tenant.api.views.tenant_views.get_wazo_admin_token", return_value="adm")
 def test_tenant_create_conflict_when_preexists(mock_token, mock_get_uuid, api_client, staff_user):
     api_client.force_authenticate(user=staff_user)
 
@@ -118,7 +118,7 @@ def test_tenant_create_validation_error_conflict(api_client, staff_user):
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.LogEntry.objects.log_action")
+@patch("voice_core.tenant.api.views.tenant_views.LogEntry.objects.log_action")
 def test_tenant_partial_update_success(mock_log, api_client, staff_user):
     t = Tenant.objects.create(name="Up", domain="up.io", max_users=10)
     api_client.force_authenticate(user=staff_user)
@@ -144,7 +144,7 @@ def test_tenant_partial_update_generic_error_returns_400(api_client, staff_user,
         @property
         def data(self): return {"name": "Err", "max_users": 10}
 
-    monkeypatch.setattr("voice_core.tenant.api.views.TenantViewSet.get_serializer", lambda *a, **k: DummySer())
+    monkeypatch.setattr("voice_core.tenant.api.views.tenant_views.TenantViewSet.get_serializer", lambda *a, **k: DummySer())
 
     url = reverse("tenant-detail", args=[t.id])
     res = api_client.patch(url, {"max_users": 77}, format="json")
@@ -154,7 +154,7 @@ def test_tenant_partial_update_generic_error_returns_400(api_client, staff_user,
 # -------- ExtensionViewSet: available --------
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.get_available_extensions", return_value={"ctx": [100, 101]})
+@patch("voice_core.tenant.api.views.extension_views.get_available_extensions", return_value={"ctx": [100, 101]})
 def test_extensions_available_success(mock_avail, api_client, staff_user):
     api_client.force_authenticate(user=staff_user)
     url = reverse("tenant-extensions-available", kwargs={"tenant_id": 1})
@@ -164,7 +164,7 @@ def test_extensions_available_success(mock_avail, api_client, staff_user):
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.get_available_extensions", side_effect=Exception("fail"))
+@patch("voice_core.tenant.api.views.extension_views.get_available_extensions", side_effect=Exception("fail"))
 def test_extensions_available_internal_error_500(mock_avail, api_client, staff_user):
     api_client.force_authenticate(user=staff_user)
     url = reverse("tenant-extensions-available", kwargs={"tenant_id": 1})
@@ -175,7 +175,7 @@ def test_extensions_available_internal_error_500(mock_avail, api_client, staff_u
 # -------- ExtensionViewSet: assign --------
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.User")
+@patch("voice_core.tenant.api.views.extension_views.User")
 def test_assign_404_when_user_not_found(mock_user, api_client, staff_user):
     # Ensure DoesNotExist is a real exception class on the mock
     mock_user.DoesNotExist = type("DoesNotExist", (Exception,), {})
@@ -196,7 +196,7 @@ def test_assign_404_when_user_not_found(mock_user, api_client, staff_user):
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.User")
+@patch("voice_core.tenant.api.views.extension_views.User")
 def test_assign_400_when_no_contexts(mock_user, api_client, staff_user):
     user = MagicMock()
     tenant = MagicMock()
@@ -220,8 +220,8 @@ def test_assign_400_when_no_contexts(mock_user, api_client, staff_user):
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.get_available_extensions", return_value={"ctxA": [101]})
-@patch("voice_core.tenant.api.views.User")
+@patch("voice_core.tenant.api.views.extension_views.get_available_extensions", return_value={"ctxA": [101]})
+@patch("voice_core.tenant.api.views.extension_views.User")
 def test_assign_400_when_extension_not_available(mock_user, mock_avail, api_client, staff_user):
     user = MagicMock()
     tenant = MagicMock()
@@ -246,9 +246,9 @@ def test_assign_400_when_extension_not_available(mock_user, mock_avail, api_clie
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.ExtensionAssignment")
-@patch("voice_core.tenant.api.views.get_available_extensions", return_value={"ctxA": [100]})
-@patch("voice_core.tenant.api.views.User")
+@patch("voice_core.tenant.api.views.extension_views.ExtensionAssignment")
+@patch("voice_core.tenant.api.views.extension_views.get_available_extensions", return_value={"ctxA": [100]})
+@patch("voice_core.tenant.api.views.extension_views.User")
 def test_assign_409_when_extension_already_assigned(mock_user, mock_avail, mock_assignment, api_client, staff_user):
     user = MagicMock()
     tenant = MagicMock()
@@ -275,10 +275,10 @@ def test_assign_409_when_extension_already_assigned(mock_user, mock_avail, mock_
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.assign_extension")
-@patch("voice_core.tenant.api.views.get_available_extensions", return_value={"ctxA": [100]})
-@patch("voice_core.tenant.api.views.ExtensionAssignment")
-@patch("voice_core.tenant.api.views.User")
+@patch("voice_core.tenant.api.views.extension_views.assign_extension")
+@patch("voice_core.tenant.api.views.extension_views.get_available_extensions", return_value={"ctxA": [100]})
+@patch("voice_core.tenant.api.views.extension_views.ExtensionAssignment")
+@patch("voice_core.tenant.api.views.extension_views.User")
 def test_assign_success_201(mock_user, mock_assignment, mock_avail, mock_assign, api_client, staff_user):
     user = MagicMock()
     user.id = 2  # ensure JSON-serializable
@@ -320,9 +320,9 @@ def test_assign_success_201(mock_user, mock_assignment, mock_avail, mock_assign,
 
 
 @pytest.mark.django_db
-@patch("voice_core.tenant.api.views.ExtensionAssignment")
-@patch("voice_core.tenant.api.views.get_available_extensions", return_value={"ctxA": [100]})
-@patch("voice_core.tenant.api.views.User")
+@patch("voice_core.tenant.api.views.extension_views.ExtensionAssignment")
+@patch("voice_core.tenant.api.views.extension_views.get_available_extensions", return_value={"ctxA": [100]})
+@patch("voice_core.tenant.api.views.extension_views.User")
 def test_assign_409_when_sip_username_in_use(mock_user, mock_avail, mock_assignment, api_client, staff_user):
     user = MagicMock()
     tenant = MagicMock()

@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.http import StreamingHttpResponse 
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiResponse
@@ -138,7 +139,10 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         if request.user != user:
             # Check if user has admin permissions
             if not IsPlatformAdminOrTenantAdmin().has_permission(request, self):
-                raise PermissionDenied("You are not authorized to access this voicemail.")
+                return Response(
+                    {"detail": "You are not authorized to access this voicemail."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         voicemail_config = VoicemailAssignment.objects.filter(user=user)
         if not voicemail_config.exists():
@@ -282,17 +286,34 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         try:
             user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
         except User.DoesNotExist:
-            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                    "error": "UserNotFound",
+                    "message": "The requested User does not exist."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         voicemail = VoicemailAssignment.objects.filter(user=user).first()
         if not voicemail:
             return Response({"detail": "No voicemail assigned"}, status=status.HTTP_404_NOT_FOUND)
 
-        recording, content_type = get_voicemail_recording(
+        # Fetch chunk iterator + headers from service
+        chunks_iter, headers = get_voicemail_recording(
             user.tenant, user, voicemail.voicemail_id, message_id
         )
-        if recording is None:
-            return Response({"detail": "Invalid Action"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        if chunks_iter is None:
+            return Response({
+                    "error": "VoicemailNotFound",
+                    "message": "The requested voicemail does not exist."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        from django.http import HttpResponse
-        return HttpResponse(recording, content_type=content_type)
+        resp = StreamingHttpResponse(chunks_iter, content_type=(headers or {}).get("Content-Type", "audio/wav"))
+        # Pass through useful headers if present
+        if headers:
+            if "Content-Length" in headers:
+                resp["Content-Length"] = headers["Content-Length"]
+            if "Content-Disposition" in headers:
+                resp["Content-Disposition"] = headers["Content-Disposition"]
+        return resp
