@@ -7,7 +7,10 @@ from django.contrib.admin.models import (
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiResponse,
+)
 from rest_framework import generics, viewsets
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -80,8 +83,8 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         request=UserCreateSerializer,
         responses={
             201: UserDetailSerializer,
-            400: "Bad request",
-            409: "Conflict – user already exists or validation error",
+            400: OpenApiResponse(description="Bad request"),
+            409: OpenApiResponse(description="Conflict: user already exists or validation error"),
         },
     )
     def create(self, request, *args, **kwargs):
@@ -103,7 +106,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         ),
         responses={
             200: UserDetailSerializer,
-            404: "User not found",
+            404: OpenApiResponse(description="User not found"),
         },
     )
     def retrieve(self, request, *args, **kwargs):
@@ -129,7 +132,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         request=UserUpdateSerializer,
         responses={
             200: UserDetailSerializer,
-            400: "Failed to update tenant user",
+            400: OpenApiResponse(description="Failed to update tenant user"),
         },
     )
     def partial_update(self, request, *args, **kwargs):
@@ -184,7 +187,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         ),
         responses={
             200: UserListSerializer,
-            400: "Bad request",
+            400: OpenApiResponse(description="Bad request"),
         },
     )
     def list(self, request, *args, **kwargs):
