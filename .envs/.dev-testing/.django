@@ -64,3 +64,7 @@ VOICEMAIL_DEFAULT_MAX_MESSAGES = 10
 
 # voicemail PIN limit 
 VOICEMAIL_PIN_MIN_LENGTH = 4
+
+# voicemail recording fetch timeout constants
+VOICEMAIL_CONNECTION_TIMEOUT = 15
+VOICEMAIL_READ_TIMEOUT = 15

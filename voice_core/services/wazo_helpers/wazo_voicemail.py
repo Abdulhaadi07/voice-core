@@ -2,7 +2,11 @@ from django.core import serializers
 import requests
 import time
 from typing import Iterator, Tuple, Dict, Optional
-from config.settings.base import WAZO_API_URL
+from config.settings.base import (
+    WAZO_API_URL, 
+    VOICEMAIL_READ_TIMEOUT, 
+    VOICEMAIL_CONNECTION_TIMEOUT,
+)
 from voice_core.services.wazo_helpers.wazo_context import create_context
 
 import logging
@@ -95,6 +99,8 @@ def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: s
     Returns (chunk_iterator, headers) to stream from upstream without buffering.
     headers includes Content-Type/Content-Length/Content-Disposition if present.
     """
+    connection_timeout = int(VOICEMAIL_CONNECTION_TIMEOUT) 
+    stream_timeout = int(VOICEMAIL_READ_TIMEOUT)
     url = f"{WAZO_API_URL}/api/calld/1.0/voicemails/{voicemail_id}/messages/{message_id}/recording"
     headers = {
         "accept": "audio/wav",
@@ -103,7 +109,7 @@ def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: s
 
     try:
         # Use a (connect, read) timeout so read timeouts are enforced per chunk
-        resp = requests.get(url, headers=headers, timeout=(15, 15), stream=True, verify=False)
+        resp = requests.get(url, headers=headers, timeout=(connection_timeout, stream_timeout), stream=True, verify=False)
         resp.raise_for_status()
 
         # Prefetch first chunk to surface timeouts before starting the stream

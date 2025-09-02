@@ -195,7 +195,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
                 user.tenant, user, voicemail.voicemail_id
             )
             if data is None:
-                return Response({"message": "Voice service down"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                return Response({"message": "Voicemail service down"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response(data, status=status.HTTP_200_OK)
         except Exception as e:
             msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
