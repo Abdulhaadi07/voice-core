@@ -95,7 +95,7 @@ class TenantViewSet(
             if does_tenant_pre_exist:
                 logger.warning(f"Tenant already exists in Wazo: name={request.data.get('name')}")
                 return Response(
-                    {"detail": f"Tenant '{request.data['name']}' already exists in Wazo."},
+                    {"detail": f"Tenant '{request.data['name']}' already exists in Wazo.", "message": f"Tenant '{request.data['name']}' already exists in Wazo.", "code": "TENANT_EXISTS"},
                     status=status.HTTP_409_CONFLICT,
                 )
             # Save Tenant 
@@ -156,7 +156,7 @@ class TenantViewSet(
         except Exception as e:
             logger.error(f"Error updating Tenant {tenant.id if 'tenant' in locals() else 'unknown'}: {e}")
             return Response(
-                {"detail": "Failed to update tenant."},
+                {"detail": "Failed to update tenant.", "message": "Failed to update tenant."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 	

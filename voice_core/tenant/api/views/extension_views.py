@@ -52,18 +52,21 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 	@action(detail=False, methods=["get"], url_path="available")
 	def available(self, request, tenant_id=None):
 		logger.info(f"Getting available extensions for tenant: {tenant_id}")
+		# 401 when not authenticated
+		if not request.user or not request.user.is_authenticated:
+			return Response({"message": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 		if not tenant_id:
-			return Response({"detail": "tenant_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"detail": "tenant_id is required", "message": "tenant_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 		try:
 			tenant_id = int(tenant_id)
 			available_extensions_by_context = get_available_extensions(tenant_id)
 			serializer = AvailableExtensionsSerializer({"contexts": available_extensions_by_context})
 			return Response(serializer.data)
 		except ValueError:
-			return Response({"detail": "Invalid tenant_id format"}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"detail": "Invalid tenant_id format", "message": "Invalid tenant_id format"}, status=status.HTTP_400_BAD_REQUEST)
 		except Exception as e:
 			logger.error(f"Error getting available extensions for tenant {tenant_id}: {e}")
-			return Response({"detail": "Failed to retrieve available extensions"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+			return Response({"detail": "Failed to retrieve available extensions", "message": "Failed to retrieve available extensions"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 	@extend_schema(
         summary="Assign an extension to a user",
@@ -97,8 +100,11 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 	@action(detail=False, methods=["post"], url_path="assign")
 	def assign(self, request, tenant_id=None, user_id=None):
 		logger.info(f"Assign extension requested tenant_id={tenant_id}, user_id={user_id}")
+		# 401 when not authenticated
+		if not request.user or not request.user.is_authenticated:
+			return Response({"message": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 		if not tenant_id or not user_id:
-			return Response({"detail": "tenant_id and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"detail": "tenant_id and user_id are required", "message": "tenant_id and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
 		try:
 			tenant_id = int(tenant_id)
@@ -120,7 +126,7 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 		try:
 			user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
 		except User.DoesNotExist:
-			return Response({"detail": "User not found for this tenant"}, status=status.HTTP_404_NOT_FOUND)
+			return Response({"detail": "User not found for this tenant", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
 		tenant = user.tenant
 		# contexts is stored as a list of objects; support legacy dict for backward compatibility
@@ -143,7 +149,7 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 				matched_context = ctx
 				break
 		if not matched_context:
-			return Response({"detail": f"Context '{context_name}' not found for tenant"}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"detail": f"Context '{context_name}' not found for tenant", "message": f"Context '{context_name}' not found for tenant"}, status=status.HTTP_400_BAD_REQUEST)
 
 		available_by_context = get_available_extensions(tenant.id)  
 		
@@ -159,19 +165,19 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 		logger.info(f"available_by_context: {available_in_ctx}, {available_by_context}")
 
 		if not available_in_ctx or extension_num not in available_in_ctx:
-			return Response({"detail": f"Extension {extension_num} not available in context '{context_name}'"}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"detail": f"Extension {extension_num} not available in context '{context_name}'", "message": f"Extension {extension_num} not available in context '{context_name}'"}, status=status.HTTP_400_BAD_REQUEST)
 		
 		# Uniqueness checks
 		if ExtensionAssignment.objects.filter(extension=str(extension_num), context_name=context_name).exists():
 			return Response(
-				{"detail": f"Extension {extension_num} already assigned in context '{context_name}'"},
+				{"detail": f"Extension {extension_num} already assigned in context '{context_name}'", "message": f"Extension {extension_num} already assigned in context '{context_name}'", "code": "EXTENSION_TAKEN"},
 				status=status.HTTP_409_CONFLICT
 			)
 
 		# Check if the SIP username is already in use in this context
 		if ExtensionAssignment.objects.filter(sip_username=sip_username, context_name=context_name).exists():
 			return Response(
-				{"detail": f"SIP username '{sip_username}' already in use in context '{context_name}'"},
+				{"detail": f"SIP username '{sip_username}' already in use in context '{context_name}'", "message": f"SIP username '{sip_username}' already in use in context '{context_name}'", "code": "SIP_USERNAME_TAKEN"},
 				status=status.HTTP_409_CONFLICT
 			)
 		logger.info(f"{context_name} ,,, {extension_num},,,,{user.name} ,,, {user.id}")
