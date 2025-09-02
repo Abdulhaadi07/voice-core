@@ -1,0 +1,55 @@
+log:
+  level: DEBUG
+
+accessLogs: {}
+
+entryPoints:
+  web:
+    # http only - no HTTPS redirect
+    address: ':80'
+  
+  flower:
+    address: ':5555'
+
+# NO SSL certificates for dev-testing
+# certificatesResolvers: COMMENTED OUT
+
+http:
+  routers:
+    # HTTP-only router (no TLS)
+    web-router:
+      rule: '(Host(`18.212.50.132`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/`)'
+      entryPoints:
+        - web
+      middlewares:
+        - csrf
+      service: django
+      # NO TLS configuration
+
+    flower-router:
+      rule: '(Host(`18.212.50.132`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/flower`)'
+      entryPoints:
+        - flower
+      service: flower
+      # NO TLS configuration
+
+  middlewares:
+    csrf:
+      headers:
+        hostsProxyHeaders: ['X-CSRFToken']
+
+  services:
+    django:
+      loadBalancer:
+        servers:
+          - url: http://django:5000
+
+    flower:
+      loadBalancer:
+        servers:
+          - url: http://flower:5555
+
+providers:
+  file:
+    filename: /etc/traefik/traefik.yml
+    watch: true
