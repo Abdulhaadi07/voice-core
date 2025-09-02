@@ -95,12 +95,12 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         tenant = get_object_or_404(Tenant, id=tenant_id)
         current_count = User.objects.filter(tenant_id=tenant_id).count()
         if getattr(tenant, "max_users", None) is not None and current_count >= tenant.max_users:
-            return Response({"code": "TENANT_LIMIT", "message": "Max user count reached"}, status=400)
+            return Response({"message": "Max user count reached for this tenant"}, status=400)
 
         # Duplicate email fast fail
         email = serializer.validated_data.get("email")
         if User.objects.filter(email=email, tenant_id=tenant_id).exists():
-            return Response({"code": "DUPLICATE_EMAIL", "message": "User already exists"}, status=409)
+            return Response({"message": "User already exists"}, status=409)
 
         # Try create with one retry on timeout for external calls inside manager
         try:
@@ -110,19 +110,12 @@ class TenantUserViewSet(viewsets.GenericViewSet,
             try:
                 user = self.perform_create(serializer)
             except Exception:
-                return Response({"code": "SYSTEM_BUSY", "message": "System busy. Try again later."}, status=503)
+                return Response({"message": "System busy. Try again later."}, status=503)
         except DRFValidationError:
-            return Response({"code": "SYSTEM_BUSY", "message": "System busy. Try again later."}, status=503)
+            return Response({"message": "System busy. Try again later."}, status=503)
         except Exception as e:
-            msg = str(e)
-            if "Cognito" in msg:
-                return Response({"code": "REGISTRATION_FAILED", "message": "Registration failed. Try again."}, status=503)
-            if "Django" in msg or "User creation failed" in msg:
-                return Response({"code": "REGISTRATION_FAILED", "message": "Registration failed. Try again."}, status=503)
-            if "Wazo" in msg:
-                return Response({"code": "SYNC_FAILED", "message": "Failed to sync with Wazo"}, status=503)
-            # fallback
-            return Response({"code": "REGISTRATION_FAILED", "message": "Registration failed. Try again."}, status=503)
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            return Response({"message": f"Registration failed: {msg}"}, status=503)
 
         headers = self.get_success_headers(serializer.data)
         # If this isn't a real User instance (e.g., MagicMock in tests), avoid heavy serialization
@@ -210,8 +203,9 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 "Failed to update tenant user",
                 extra={"tenant_id": tenant.id, "user_id": user.id, "error": str(e)},
             )
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
             return Response(
-                {"detail": f"User update request failed: {str(e)}", "message": f"User update request failed: {str(e)}"},
+                {"message": f"User update request failed: {msg}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
     
@@ -257,5 +251,6 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 extra={"tenant_id": tenant.id, "error": str(e)},
             )
             from rest_framework.exceptions import ValidationError
-            raise ValidationError({"detail": f"User creation failed: {str(e)}"})
+            
+            raise ValidationError({f"User creation failed: {str(e)}"})
     

@@ -60,6 +60,7 @@ class TenantViewSet(
             201: TenantSerializer,
             400: OpenApiResponse(description="Bad request"),
             409: OpenApiResponse(description="Tenant already exists or validation error"),
+            500: OpenApiResponse(description="Internal server error"),
         },
     )
     def create(self, request, *args, **kwargs):
@@ -111,6 +112,15 @@ class TenantViewSet(
                 f"Requested by: {request.user.username}"
             )
             return Response(e.detail, status=status.HTTP_409_CONFLICT)
+        except Exception as e:
+            logger.error(
+                f"Exception at creating new Tenant: {e} | "
+                f"Name: {request.data.get('name')} | Domain: {request.data.get('domain')} | "
+                f"Max Users: {request.data.get('max_users')} | "
+                f"Requested by: {request.user.username}"
+            )
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            return Response({"message": f"New Tenant create request failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         summary="Update tenant partially",
@@ -122,6 +132,7 @@ class TenantViewSet(
         responses={
             200: TenantSerializer,
             400: OpenApiResponse(description="Failed to update tenant"),
+            500: OpenApiResponse(description="Internal server error"),
         },
     )
     def partial_update(self, request, *args, **kwargs):
@@ -155,10 +166,8 @@ class TenantViewSet(
             return Response(serializer.data)
         except Exception as e:
             logger.error(f"Error updating Tenant {tenant.id if 'tenant' in locals() else 'unknown'}: {e}")
-            return Response(
-                {"detail": "Failed to update tenant.", "message": "Failed to update tenant."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            return Response({"message": f"Error updating Tenant: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 	
     @extend_schema(
         summary="List all tenants",

@@ -5,7 +5,7 @@ from drf_spectacular.utils import (
     OpenApiResponse
 )
 from rest_framework import status, viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -79,7 +79,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
             tenant_id = int(tenant_id)
             user_id = int(user_id)
         except (ValueError, TypeError):
-            return Response({"detail": "Invalid tenant_id or user_id"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Invalid tenant_id or user_id"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate input data
         serializer = ConfigureVoicemailSerializer(data=request.data)
@@ -91,21 +91,29 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         try:
             user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
         except User.DoesNotExist:
-            return Response({"detail": "User not found for this tenant"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "User not found for this tenant"}, status=status.HTTP_404_NOT_FOUND)
 
         tenant = user.tenant
 
         try:
             assign_voicemail(tenant, user, voicemail_pin, voicemail_max_messages)
-        except Exception as e:
+        except ValidationError as e:
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
             logger.error(f"Voicemail assignment failed for tenant_id={tenant.id}, user_id={user.id}: {e}", exc_info=True)
             return Response(
-                {"detail": "Voicemail assignment failed"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"message": f"Voicemail assignment failed: {msg}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            logger.error(f"Voicemail assignment failed for tenant_id={tenant.id}, user_id={user.id}: {e}", exc_info=True)
+            return Response(
+                {"message": f"Voicemail assignment failed: {msg}"},
+                status=status.HTTP_400_BAD_REQUEST  
             )
 
         logger.info(f"Voicemail assigned to user_id={user_id} in tenant_id={tenant_id}")
-        return Response({"detail": "Voicemail successfully assigned"}, status=status.HTTP_200_OK)
+        return Response({"message": "Voicemail successfully assigned"}, status=status.HTTP_200_OK)
 
     # superadmin/owner/tenantadmin access
     @extend_schema(
@@ -129,26 +137,27 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         try:
             tenant_id = int(tenant_id)
             user_id = int(user_id)
-        except (ValueError, TypeError):
-            return Response({"detail": "Invalid tenant_id or user_id"}, status=status.HTTP_400_BAD_REQUEST)
+        except (ValueError, TypeError) as e:
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            return Response({"message": f"Invalid tenant_id or user_id: {msg}"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
         except User.DoesNotExist:
-            return Response({"detail": "User not found for this tenant"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "User not found for this tenant"}, status=status.HTTP_404_NOT_FOUND)
 
         # Restrict access → only self or admins
         if request.user != user:
             # Check if user has admin permissions
             if not IsPlatformAdminOrTenantAdmin().has_permission(request, self):
                 return Response(
-                    {"detail": "You are not authorized to access this voicemail."},
+                    {"message": "You are not authorized to access this voicemail."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
         voicemail_config = VoicemailAssignment.objects.filter(user=user)
         if not voicemail_config.exists():
-            return Response({"detail": "No voicemail assigned for this user"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "No voicemail assigned for this user"}, status=status.HTTP_404_NOT_FOUND)
         serializer = VoicemailSerializer(instance=voicemail_config.first())
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -181,13 +190,16 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         voicemail = VoicemailAssignment.objects.filter(user=user).first()
         if not voicemail:
             return Response({"message": "Voicemail not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        data = get_all_voicemails(
-            user.tenant, user, voicemail.voicemail_id
-        )
-        if data is None:
-            return Response({"message": "Voice service down"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        return Response(data, status=status.HTTP_200_OK)
+        try:
+            data = get_all_voicemails(
+                user.tenant, user, voicemail.voicemail_id
+            )
+            if data is None:
+                return Response({"message": "Voice service down"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception as e:
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            return Response({"message": f"Voicemail retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # superadmin/owner/tenantadmin access
     @extend_schema(
@@ -223,13 +235,16 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         voicemail = VoicemailAssignment.objects.filter(user=user).first()
         if not voicemail:
             return Response({"message": "Voicemail not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        data = get_voicemails_by_folder(
-            user.tenant, user, voicemail.voicemail_id, int(folder_id)
-        )
-        if data is None:
-            return Response({"message": "No voicemail found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(data, status=status.HTTP_200_OK)
+        try:
+            data = get_voicemails_by_folder(
+                user.tenant, user, voicemail.voicemail_id, int(folder_id)
+            )
+            if data is None:
+                return Response({"message": "No voicemail found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception as e:
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            return Response({"message": f"Voicemail retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # only owner access
     @extend_schema(
@@ -269,13 +284,16 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         voicemail = VoicemailAssignment.objects.filter(user=user).first()
         if not voicemail:
             return Response({"message": "Voicemail not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        data = set_voicemail_as_read(
-            user.tenant, user, voicemail.voicemail_id, message_id, folder_id
-        )
-        if data is None:
-            return Response({"message": "No voicemail found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(data, status=status.HTTP_204_NO_CONTENT)
+        try:
+            data = set_voicemail_as_read(
+                user.tenant, user, voicemail.voicemail_id, message_id, folder_id
+            )
+            if data is None:
+                return Response({"message": "No voicemail found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(data, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            return Response({"message": f"Voicemail retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # only owner access
     @extend_schema(
@@ -326,6 +344,10 @@ class VoicemailViewSet(viewsets.GenericViewSet):
             )
         except requests.Timeout:
             return Response({"message": "Voice service timeout"}, status=status.HTTP_504_GATEWAY_TIMEOUT)
+        except Exception as e:
+            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            return Response({"message": f"Voicemail recording retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         if chunks_iter is None:
             return Response({"message": "No such voicemail message"}, status=status.HTTP_404_NOT_FOUND)
 

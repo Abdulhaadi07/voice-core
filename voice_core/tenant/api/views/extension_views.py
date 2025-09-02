@@ -66,7 +66,8 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 			return Response({"detail": "Invalid tenant_id format", "message": "Invalid tenant_id format"}, status=status.HTTP_400_BAD_REQUEST)
 		except Exception as e:
 			logger.error(f"Error getting available extensions for tenant {tenant_id}: {e}")
-			return Response({"detail": "Failed to retrieve available extensions", "message": "Failed to retrieve available extensions"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+			msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+			return Response({"message": f"Failed to retrieve available extensions: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 	@extend_schema(
         summary="Assign an extension to a user",
@@ -109,8 +110,9 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 		try:
 			tenant_id = int(tenant_id)
 			user_id = int(user_id)
-		except ValueError:
-			return Response({"detail": "Invalid tenant_id or user_id"}, status=status.HTTP_400_BAD_REQUEST)
+		except ValueError as e:
+			msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+			return Response({"detail": f"Invalid tenant_id or user_id: {msg}"}, status=status.HTTP_400_BAD_REQUEST)
 
 		# Validate payload
 		ser = AssignExtensionSerializer(data=request.data)
@@ -182,32 +184,36 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 			)
 		logger.info(f"{context_name} ,,, {extension_num},,,,{user.name} ,,, {user.id}")
 
-		assignment = assign_extension(
-			tenant=tenant,
-			extension_num=extension_num,
-			sip_username=sip_username,
-			sip_password=sip_password,
-			user=user,
-			context_name=context_name,
-			voicemail_pin= voicemail_pin,
-			voicemail_max_messages = voicemail_max_messages,
-		)
+		try: 
+			assignment = assign_extension(
+				tenant=tenant,
+				extension_num=extension_num,
+				sip_username=sip_username,
+				sip_password=sip_password,
+				user=user,
+				context_name=context_name,
+				voicemail_pin= voicemail_pin,
+				voicemail_max_messages = voicemail_max_messages,
+			)
 
-		
+			
 
-		logger.info(f"Assigned extension {assignment.extension} to user_id={user.id} in context '{context_name}'")
-		return Response(
-			{
-				"message": "Extension assigned successfully",
-				"user_id": user.id,
-				"tenant_id": tenant.id,
-				"line_id": assignment.wazo_line_id,
-				"extension": assignment.extension,
-				"sip_username": assignment.sip_username,
-				"context_name": assignment.context_name,
-			},
-			status=status.HTTP_201_CREATED,
-		)
+			logger.info(f"Assigned extension {assignment.extension} to user_id={user.id} in context '{context_name}'")
+			return Response(
+				{
+					"message": "Extension assigned successfully",
+					"user_id": user.id,
+					"tenant_id": tenant.id,
+					"line_id": assignment.wazo_line_id,
+					"extension": assignment.extension,
+					"sip_username": assignment.sip_username,
+					"context_name": assignment.context_name,
+				},
+				status=status.HTTP_201_CREATED,
+			)
+		except Exception as e:
+			msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+			return Response({"detail": f"Extension assignment request failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 		
