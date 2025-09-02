@@ -225,8 +225,8 @@ class TestFetchVoicemailRecording:
         audio_content = b"fake audio data"
         content_type = "audio/wav"
         mock_response = MagicMock()
-        # Streamed content via iter_content
-        mock_response.iter_content.return_value = [audio_content]
+        # Streamed content via iter_content; first call yields data, second yields nothing
+        mock_response.iter_content.side_effect = [iter([audio_content]), iter([])]
         mock_response.headers = {"Content-Type": content_type}
         mock_get.return_value = mock_response
 
@@ -244,7 +244,8 @@ class TestFetchVoicemailRecording:
         assert f"/api/calld/1.0/voicemails/{voicemail_id}/messages/{message_id}/recording" in args[0]
         assert kwargs["headers"]["accept"] == "audio/wav"
         assert kwargs["headers"]["X-Auth-Token"] == admin_token
-        assert kwargs["timeout"] == 20
+        # Helper uses connect/read timeout tuple
+        assert kwargs["timeout"] == (15, 15)
         assert kwargs["stream"] is True
         assert kwargs["verify"] is False
         mock_response.raise_for_status.assert_called_once()
@@ -253,7 +254,7 @@ class TestFetchVoicemailRecording:
     def test_fetch_voicemail_recording_success_default_content_type(self, mock_get):
         audio_content = b"fake audio data"
         mock_response = MagicMock()
-        mock_response.iter_content.return_value = [audio_content]
+        mock_response.iter_content.side_effect = [iter([audio_content]), iter([])]
         mock_response.headers = {}  # No Content-Type header
         mock_get.return_value = mock_response
 
@@ -294,7 +295,7 @@ class TestFetchVoicemailRecording:
         audio_content = b"fake mp3 data"
         content_type = "audio/mpeg"
         mock_response = MagicMock()
-        mock_response.iter_content.return_value = [audio_content]
+        mock_response.iter_content.side_effect = [iter([audio_content]), iter([])]
         mock_response.headers = {"Content-Type": content_type}
         mock_get.return_value = mock_response
 

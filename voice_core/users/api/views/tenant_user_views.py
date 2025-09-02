@@ -14,6 +14,9 @@ from drf_spectacular.utils import (
 from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError as DRFValidationError
+import requests
+import socket
 
 from voice_core.users.permissions import IsPlatformAdminOrTenantAdmin
 from voice_core.tenant.models import Tenant
@@ -87,7 +90,40 @@ class TenantUserViewSet(viewsets.GenericViewSet,
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = self.perform_create(serializer)
+        # Tenant limit check
+        tenant_id = self.kwargs.get("tenant_id")
+        tenant = get_object_or_404(Tenant, id=tenant_id)
+        current_count = User.objects.filter(tenant_id=tenant_id).count()
+        if getattr(tenant, "max_users", None) is not None and current_count >= tenant.max_users:
+            return Response({"code": "TENANT_LIMIT", "message": "Max user count reached"}, status=400)
+
+        # Duplicate email fast fail
+        email = serializer.validated_data.get("email")
+        if User.objects.filter(email=email, tenant_id=tenant_id).exists():
+            return Response({"code": "DUPLICATE_EMAIL", "message": "User already exists"}, status=409)
+
+        # Try create with one retry on timeout for external calls inside manager
+        try:
+            user = self.perform_create(serializer)
+        except (socket.timeout, requests.Timeout):
+            logger.warning("Timeout during user creation, retrying once...")
+            try:
+                user = self.perform_create(serializer)
+            except Exception:
+                return Response({"code": "SYSTEM_BUSY", "message": "System busy. Try again later."}, status=503)
+        except DRFValidationError:
+            return Response({"code": "SYSTEM_BUSY", "message": "System busy. Try again later."}, status=503)
+        except Exception as e:
+            msg = str(e)
+            if "Cognito" in msg:
+                return Response({"code": "REGISTRATION_FAILED", "message": "Registration failed. Try again."}, status=503)
+            if "Django" in msg or "User creation failed" in msg:
+                return Response({"code": "REGISTRATION_FAILED", "message": "Registration failed. Try again."}, status=503)
+            if "Wazo" in msg:
+                return Response({"code": "SYNC_FAILED", "message": "Failed to sync with Wazo"}, status=503)
+            # fallback
+            return Response({"code": "REGISTRATION_FAILED", "message": "Registration failed. Try again."}, status=503)
+
         headers = self.get_success_headers(serializer.data)
         # If this isn't a real User instance (e.g., MagicMock in tests), avoid heavy serialization
         if isinstance(user, User):
@@ -175,7 +211,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 extra={"tenant_id": tenant.id, "user_id": user.id, "error": str(e)},
             )
             return Response(
-                {"detail": f"User update request failed: {str(e)}"},
+                {"detail": f"User update request failed: {str(e)}", "message": f"User update request failed: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
     

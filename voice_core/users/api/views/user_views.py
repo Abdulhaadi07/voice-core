@@ -109,7 +109,7 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
         except Exception as exc:
             logger.error(f"Role assignment failed for user_id={user.id}: {exc}")
             return Response(
-                {"detail": f"Role assignment failed: {str(exc)}"},
+                {"detail": f"Role assignment failed: {str(exc)}", "message": f"Role assignment failed: {str(exc)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

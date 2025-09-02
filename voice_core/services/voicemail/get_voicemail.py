@@ -1,4 +1,5 @@
 from datetime import datetime
+import requests
 from rest_framework.exceptions import ValidationError
 from voice_core.users.models import (
 	VoicemailAssignment,
@@ -155,6 +156,14 @@ def get_voicemail_recording(
             message_id=message_id,
         )
         return chunks_iter, headers
+    except requests.Timeout as e:
+        logger.error(
+            f"Timeout while fetching voicemail recording | tenant_id={getattr(tenant, 'id', 'unknown')}, "
+            f"user_id={getattr(user, 'id', 'unknown')}, voicemail_id={voicemail_id}, message_id={message_id}: {e}",
+            exc_info=True,
+        )
+        # Propagate timeout to views
+        raise
     except Exception as e:
         logger.error(
             f"Error fetching voicemail recording | tenant_id={getattr(tenant, 'id', 'unknown')}, "

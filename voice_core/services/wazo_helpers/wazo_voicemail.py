@@ -1,5 +1,6 @@
 from django.core import serializers
 import requests
+import time
 from typing import Iterator, Tuple, Dict, Optional
 from config.settings.base import WAZO_API_URL
 from voice_core.services.wazo_helpers.wazo_context import create_context
@@ -88,7 +89,7 @@ def update_voicemail_as_read(
         return None
 
 
-def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: str) -> Tuple[Optional[Iterator[bytes]], Optional[Dict[str, str]]]:
+def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: str, stream_timeout: int = 15) -> Tuple[Optional[Iterator[bytes]], Optional[Dict[str, str]]]:
     """
     Option 3: Proxy Streaming
     Returns (chunk_iterator, headers) to stream from upstream without buffering.
@@ -101,14 +102,39 @@ def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: s
     }
 
     try:
-        resp = requests.get(url, headers=headers, timeout=20, stream=True, verify=False)
+        # Use a (connect, read) timeout so read timeouts are enforced per chunk
+        resp = requests.get(url, headers=headers, timeout=(15, 15), stream=True, verify=False)
         resp.raise_for_status()
 
-        # Build a safe iterator that closes the response when done
-        def _iter() -> Iterator[bytes]:
+        # Prefetch first chunk to surface timeouts before starting the stream
+        first_chunk: Optional[bytes] = None
+        try:
+            for chunk in resp.iter_content(chunk_size=8192):
+                if chunk:
+                    first_chunk = chunk
+                    break
+        except requests.Timeout as te:
+            # Propagate timeouts to caller so the view can return 504 before streaming starts
             try:
+                resp.close()
+            except Exception:
+                pass
+            raise te
+
+        # Build a safe iterator that yields the pre-fetched first chunk, then continues
+        def _iter() -> Iterator[bytes]:
+            start = time.time()
+            try:
+                if first_chunk:
+                    yield first_chunk
                 for chunk in resp.iter_content(chunk_size=8192):
                     if chunk:
+                        elapsed = time.time() - start
+                        if elapsed > stream_timeout:
+                            # Log timeout
+                            logger.warning(f"Streaming exceeded timeout after {elapsed:.1f}s")
+                            # Instead of raising, stop iteration cleanly
+                            return 
                         yield chunk
             finally:
                 try:
@@ -130,7 +156,17 @@ def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: s
         # Default content type if missing
         out_headers.setdefault("Content-Type", "audio/wav")
 
+        # Provide stream timeout hints to UI/clients
+        out_headers["X-Stream-Timeout"] = str(stream_timeout)
+        out_headers["X-Stream-Timeout-Policy"] = "elapsed"
+
         return _iter(), out_headers
+    except requests.Timeout as e:
+        logger.error(
+            f"Timeout fetching voicemail recording (voicemail_id={voicemail_id}, message_id={message_id}): {e}"
+        )
+        # Re-raise timeouts to let upstream map to 504
+        raise
     except requests.RequestException as e:
         logger.error(
             f"Failed to fetch voicemail recording (voicemail_id={voicemail_id}, message_id={message_id}): "

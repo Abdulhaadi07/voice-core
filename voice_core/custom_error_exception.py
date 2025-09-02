@@ -38,6 +38,12 @@ class NotImplementedAPI(APIException):
     default_code = "not_implemented"
 
 
+class Conflict(APIException):
+    status_code = 409
+    default_detail = "Conflict."
+    default_code = "conflict"
+
+
 # ----- Status Code Mapper -----
 def raise_custom_drf_exception(status_code: int, detail: str = None) -> APIException:
     """
@@ -52,6 +58,7 @@ def raise_custom_drf_exception(status_code: int, detail: str = None) -> APIExcep
         405: MethodNotAllowed("method", detail=detail) if detail else MethodNotAllowed("method"),
         406: NotAcceptable(detail=detail) if detail else NotAcceptable(),
         415: UnsupportedMediaType("media_type", detail=detail) if detail else UnsupportedMediaType("media_type"),
+        409: Conflict(detail=detail) if detail else Conflict(),
         429: Throttled(wait=None, detail=detail) if detail else Throttled(wait=None),
 
         # Server errors
