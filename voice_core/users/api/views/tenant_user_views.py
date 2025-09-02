@@ -114,7 +114,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         except DRFValidationError:
             return Response({"message": "System busy. Try again later."}, status=503)
         except Exception as e:
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             return Response({"message": f"Registration failed: {msg}"}, status=503)
 
         headers = self.get_success_headers(serializer.data)
@@ -203,7 +203,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 "Failed to update tenant user",
                 extra={"tenant_id": tenant.id, "user_id": user.id, "error": str(e)},
             )
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             return Response(
                 {"message": f"User update request failed: {msg}"},
                 status=status.HTTP_400_BAD_REQUEST

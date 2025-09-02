@@ -119,7 +119,7 @@ class TenantViewSet(
                 f"Max Users: {request.data.get('max_users')} | "
                 f"Requested by: {request.user.username}"
             )
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             return Response({"message": f"New Tenant create request failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
@@ -166,7 +166,7 @@ class TenantViewSet(
             return Response(serializer.data)
         except Exception as e:
             logger.error(f"Error updating Tenant {tenant.id if 'tenant' in locals() else 'unknown'}: {e}")
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             return Response({"message": f"Error updating Tenant: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 	
     @extend_schema(

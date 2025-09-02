@@ -66,7 +66,7 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 			return Response({"detail": "Invalid tenant_id format", "message": "Invalid tenant_id format"}, status=status.HTTP_400_BAD_REQUEST)
 		except Exception as e:
 			logger.error(f"Error getting available extensions for tenant {tenant_id}: {e}")
-			msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+			msg = str(e)
 			return Response({"message": f"Failed to retrieve available extensions: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 	@extend_schema(
@@ -212,7 +212,7 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 				status=status.HTTP_201_CREATED,
 			)
 		except Exception as e:
-			msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+			msg = str(e)
 			return Response({"detail": f"Extension assignment request failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

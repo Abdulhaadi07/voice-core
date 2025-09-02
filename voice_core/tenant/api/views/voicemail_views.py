@@ -105,7 +105,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             logger.error(f"Voicemail assignment failed for tenant_id={tenant.id}, user_id={user.id}: {e}", exc_info=True)
             return Response(
                 {"message": f"Voicemail assignment failed: {msg}"},
@@ -198,7 +198,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
                 return Response({"message": "Voicemail service down"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response(data, status=status.HTTP_200_OK)
         except Exception as e:
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             return Response({"message": f"Voicemail retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # superadmin/owner/tenantadmin access
@@ -243,7 +243,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
                 return Response({"message": "No voicemail found"}, status=status.HTTP_404_NOT_FOUND)
             return Response(data, status=status.HTTP_200_OK)
         except Exception as e:
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             return Response({"message": f"Voicemail retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # only owner access
@@ -292,7 +292,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
                 return Response({"message": "No voicemail found"}, status=status.HTTP_404_NOT_FOUND)
             return Response(data, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             return Response({"message": f"Voicemail retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # only owner access
@@ -345,7 +345,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         except requests.Timeout:
             return Response({"message": "Voice service timeout"}, status=status.HTTP_504_GATEWAY_TIMEOUT)
         except Exception as e:
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = str(e)
             return Response({"message": f"Voicemail recording retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         if chunks_iter is None:

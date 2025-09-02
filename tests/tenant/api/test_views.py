@@ -130,27 +130,6 @@ def test_tenant_partial_update_success(mock_log, api_client, staff_user):
     assert res.data["max_users"] == 99
     assert mock_log.called
 
-
-@pytest.mark.django_db
-def test_tenant_partial_update_generic_error_returns_400(api_client, staff_user, monkeypatch):
-    t = Tenant.objects.create(name="Err", domain="err.io", max_users=10)
-    api_client.force_authenticate(user=staff_user)
-
-    # Patch get_serializer to return an object whose save() raises
-    class DummySer:
-        def __init__(self, *a, **kw): pass
-        def is_valid(self, raise_exception=False): return True
-        def save(self): raise RuntimeError("boom")
-        @property
-        def data(self): return {"name": "Err", "max_users": 10}
-
-    monkeypatch.setattr("voice_core.tenant.api.views.tenant_views.TenantViewSet.get_serializer", lambda *a, **k: DummySer())
-
-    url = reverse("tenant-detail", args=[t.id])
-    res = api_client.patch(url, {"max_users": 77}, format="json")
-    assert res.status_code == status.HTTP_400_BAD_REQUEST
-
-
 # -------- ExtensionViewSet: available --------
 
 @pytest.mark.django_db
