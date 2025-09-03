@@ -29,11 +29,11 @@ class IsPlatformAdminOrTenantAdmin(BasePermission):
         # For tenant-scoped views, validate tenant
         tenant_id = view.kwargs.get("tenant_id")
         if tenant_id and str(request.user.tenant_id) != str(tenant_id):
-            logger.warning(f"User '{request.user}': not authenticated")
-            raise PermissionDenied(f"Permission denied: User not authenticated")
+            logger.warning(f"User '{request.user}': User is not tenant admin or superuser")
+            raise PermissionDenied(f"Permission denied: User is not tenant admin or superuser")
 
         if getattr(request.user, "tenant_role", None) == "admin":
-            logger.info(f"Permission denied: User not authenticated")
+            logger.info(f"Permission accepted: User is tenant admin")
             return True
-        logger.warning(f"Permission denied: User not authenticated")
-        raise PermissionDenied(f"Permission denied: User not authenticated")
+        logger.warning(f"Permission denied: User is not tenant admin or superuser")
+        raise PermissionDenied(f"Permission denied: User is not tenant admin or superuser")

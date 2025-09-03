@@ -68,10 +68,11 @@ def get_available_extensions(tenant_id: int) -> Dict[str, List[int]]:
         logger.info(f"Found available extensions for {len(context_available_extensions)} contexts in tenant {tenant.name}")
         return context_available_extensions
         
-    except Tenant.DoesNotExist:
-        logger.error(f"Tenant with ID {tenant_id} does not exist")
-        return {}
+    except Tenant.DoesNotExist as e:
+        msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+        logger.error(f"Tenant with ID {tenant_id} does not exist: {msg}")
+        raise msg
     except Exception as e:
         logger.error(f"Error getting available extensions for tenant {tenant_id}: {str(e)}", exc_info=True)
-        return {}
+        raise e
 

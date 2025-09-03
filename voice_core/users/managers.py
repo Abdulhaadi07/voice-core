@@ -96,7 +96,7 @@ class UserManager(DjangoUserManager["User"]):
         if not wazo_user_id:
             logger.exception("Fail to create Wazo user")
             self._rollback_on_failure(email, cognito_sub, user)
-            raise raise_custom_drf_exception(503, "Failed to create Wazo user")
+            raise raise_custom_drf_exception(503, f"Failed to create Wazo user")
 
         logger.info(f"User creation step 3.5 complete: wazo_user_id {wazo_user_id}")
 
@@ -174,13 +174,11 @@ class UserManager(DjangoUserManager["User"]):
                 logger.exception(f"Fail at saving wazo info: {wazo_user_id} {e} ")
                 self._rollback_on_failure(email, cognito_sub, user, str(wazo_user_id), admin_token)
                 raise raise_custom_drf_exception(503,f"Failed to save Wazo information: {str(e)}")
-                
-        except (ValidationError, APIException):
-            raise
+
         except Exception as e:
             # If any other error occurs, rollback everything
             self._rollback_on_failure(email, cognito_sub, user)
-            logger.exception("Failed to create user")
+            logger.exception(f"Failed to create user: {str(e)}")
             raise raise_custom_drf_exception(503,f"Failed to create New user: {str(e)}")
 
     def _rollback_on_failure(self, email: str, cognito_sub: str | None, user=None, wazo_user_uuid: str | None = None, admin_token: str | None = None):

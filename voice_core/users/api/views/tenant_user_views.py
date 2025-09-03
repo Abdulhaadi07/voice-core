@@ -85,6 +85,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
             201: UserDetailSerializer,
             400: OpenApiResponse(description="Bad request"),
             409: OpenApiResponse(description="Conflict: user already exists or validation error"),
+            503: OpenApiResponse(description="Service unavailable"),
         },
     )
     def create(self, request, *args, **kwargs):
@@ -109,13 +110,15 @@ class TenantUserViewSet(viewsets.GenericViewSet,
             logger.warning("Timeout during user creation, retrying once...")
             try:
                 user = self.perform_create(serializer)
-            except Exception:
-                return Response({"message": "System busy. Try again later."}, status=503)
-        except DRFValidationError:
-            return Response({"message": "System busy. Try again later."}, status=503)
+            except Exception as e:
+                logger.warning(f"Error during user creation: {e}")
+                return Response({"message": f"System busy. Try again later. {str(e)}"}, status=503)
+        except DRFValidationError as e:
+            logger.warning(f"Validation error during user creation: {str(e)}")
+            return Response({"message": f"Validation error during user creation: {str(e)}"}, status=400)
         except Exception as e:
             msg = str(e)
-            return Response({"message": f"Registration failed: {msg}"}, status=503)
+            return Response({"message": f"Registration failed: {msg}"}, status=400)
 
         headers = self.get_success_headers(serializer.data)
         # If this isn't a real User instance (e.g., MagicMock in tests), avoid heavy serialization
@@ -250,7 +253,5 @@ class TenantUserViewSet(viewsets.GenericViewSet,
                 "Failed to create tenant user",
                 extra={"tenant_id": tenant.id, "error": str(e)},
             )
-            from rest_framework.exceptions import ValidationError
-            
-            raise ValidationError({f"User creation failed: {str(e)}"})
-    
+            # from rest_framework.exceptions import ValidationError
+            raise e

@@ -53,7 +53,7 @@ def create_wazo_user(user: any, admin_token: str, tenant_uuid: uuid) -> [str, st
             return [wazo_user_id, wazo_username]
         else:
             logger.error(f"Fail to create wazo user! {response.status_code} {response.text}")
-            return None
+            raise Exception(f"Failed to create Wazo user: {response.status_code} {response.text}")
     except Exception as e:
         logger.error("Error calling Wazo API to create user:", e)
         raise Exception(str(e)) 
