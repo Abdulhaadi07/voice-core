@@ -246,14 +246,17 @@ class VoicemailViewSet(viewsets.GenericViewSet):
             msg = str(e)
             return Response({"message": f"Voicemail retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # only owner access
+    # superadmin/owner/tenantadmin access
     @extend_schema(
-        summary="Voicemail marked as read/unread",
+        summary="Mark Voicemail as read/unread",
         description=(
             "Move a voicemail message to the read/unread folder.\n\n"
-            "**Access:** Owner only.\n\n"
-            "Folder 1: unread.\n\n"
-            "Folder 2: read."
+            "**Access:** Owner, SuperAdmin, TenantAdmin.\n\n"
+            "**Folders:**\n"
+            "  - 1: unread\n"
+            "  - 2: read\n\n"
+            "**Usage:**\n"
+            "Send a PATCH request with JSON body `{ 'read': true }` to mark as read, or `{ 'read': false }` to mark as unread."
         ),
         request=UpdateVoicemailSerializer,
         responses={
@@ -268,11 +271,21 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         url_path="messages/(?P<message_id>[^/.]+)/read",
         url_name="set_message_as_read"
     )
-    def set_message_as_read(self, request, tenant_id=None, user_id=None, message_id=None):
-        # 401 when not authenticated
+    def set_message_status(self, request, tenant_id=None, user_id=None, message_id=None):
         if not request.user or not request.user.is_authenticated:
             return Response({"message": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
-        folder_id = request.data.get("folder_id", 2)
+
+        serializer = UpdateVoicemailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        read_status = serializer.validated_data["read"]
+        folder_id = 2 if read_status else 1
+        logger.info(
+            f"User {request.user.email} (id={request.user.id}) requests to change status of voicemail "
+            f"message_id={message_id} under tenant_id={tenant_id}, user_id={user_id} "
+            f"→ read={read_status} (folder_id={folder_id})"
+        )
+        
         try:
             user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
         except User.DoesNotExist:
@@ -295,12 +308,17 @@ class VoicemailViewSet(viewsets.GenericViewSet):
             msg = str(e)
             return Response({"message": f"Voicemail retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # only owner access
+    # superadmin/owner/tenantadmin access
     @extend_schema(
-        summary="Retrieve voicemail recording",
+        summary="Stream (play) a voicemail message",
         description=(
             "Retrieve and stream the audio recording of a voicemail message.\n\n"
-            "**Access:** Owner only"
+            "Proxy streams the voicemail audio (chunked). \n\n"
+            "Automatically marks the message as read ONLY after actual playback (after a byte threshold is sent). "
+            "Query params:\n"
+            " - auto_mark_read=0  (disable auto mark) [Deafult: 1]\n"
+            " - mark_after_bytes=<int> (default 8192)\n\n"
+            "**Access:** Owner, SuperAdmin, TenantAdmin"
         ),
         responses={
             200: OpenApiResponse(description="Binary audio stream (audio/wav, audio/mp3, etc.)"),
@@ -315,14 +333,12 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         detail=True,
         methods=["get"],
         url_path="messages/(?P<message_id>[^/.]+)/play",
-        url_name="get_message_recordings",
+        url_name="get_message_recordings"
     )
     def get_message_recordings(self, request, tenant_id=None, user_id=None, message_id=None):
-        # 401 when not authenticated
         if not request.user or not request.user.is_authenticated:
             return Response({"message": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
-
-        # Resolve user
+        
         try:
             user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
         except User.DoesNotExist:
@@ -332,39 +348,90 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         if request.user != user and not IsPlatformAdminOrTenantAdmin().has_permission(request, self):
             return Response({"message": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Check voicemail assignment
+        # Voicemail assignment
         voicemail = VoicemailAssignment.objects.filter(user=user).first()
         if not voicemail:
             return Response({"message": "Voicemail not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Fetch chunk iterator + headers from service
-        try:
-            chunks_iter, headers = get_voicemail_recording(
-                user.tenant, user, voicemail.voicemail_id, message_id
-            )
-        except requests.Timeout:
-            return Response({"message": "Voice service timeout"}, status=status.HTTP_504_GATEWAY_TIMEOUT)
-        except Exception as e:
-            msg = str(e)
-            return Response({"message": f"Voicemail recording retrieval failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+        # Upstream fetch (iterator + headers)
+        chunks_iter, headers = get_voicemail_recording(
+            user.tenant, user, voicemail.voicemail_id, message_id
+        )
         if chunks_iter is None:
             return Response({"message": "No such voicemail message"}, status=status.HTTP_404_NOT_FOUND)
 
+        # Mark controls
+        auto_mark = request.query_params.get("auto_mark_read", "1") != "0"
+        try:
+            threshold = int(request.query_params.get("mark_after_bytes", 8192))
+            if threshold < 1:
+                threshold = 8192
+        except ValueError:
+            threshold = 8192
+
+        state = {"marked": False, "sent": 0}
+
+        def mark_as_read_safe():
+            if state["marked"] or not auto_mark:
+                return
+            try:
+                # Folder 2 assumed = read (adjust if your domain differs)
+                set_voicemail_as_read(
+                    user.tenant,
+                    user,
+                    voicemail.voicemail_id,
+                    message_id,
+                    2  # read folder
+                )
+                state["marked"] = True
+                logger.info(
+                    "Voicemail auto-marked read after %d bytes | tenant_id=%s user_id=%s voicemail_id=%s message_id=%s",
+                    state["sent"],
+                    getattr(user.tenant, "id", "unknown"),
+                    user.id,
+                    voicemail.voicemail_id,
+                    message_id,
+                )
+            except Exception as e:
+                logger.error(
+                    "Failed auto-mark read | tenant_id=%s user_id=%s voicemail_id=%s message_id=%s error=%s",
+                    getattr(user.tenant, "id", "unknown"),
+                    getattr(user, "id", "unknown"),
+                    voicemail.voicemail_id,
+                    message_id,
+                    e,
+                    exc_info=True
+                )
+
+        def streaming_wrapper():
+            for chunk in chunks_iter:
+                if not chunk:
+                    continue
+                state["sent"] += len(chunk)
+                if auto_mark and not state["marked"] and state["sent"] >= threshold:
+                    mark_as_read_safe()
+                yield chunk
+            # Very small file (below threshold) but some data was delivered
+            if auto_mark and state["sent"] > 0 and not state["marked"]:
+                mark_as_read_safe()
+
         resp = StreamingHttpResponse(
-            chunks_iter,
-            content_type=(headers or {}).get("Content-Type", "audio/wav"),
+            streaming_wrapper(),
+            content_type=(headers or {}).get("Content-Type", "audio/wav")
         )
-        # Pass through useful headers if present. Avoid Content-Length when stream may end early.
+
+        # Safe passthrough headers
         if headers:
-            for hk in [
-                "Content-Disposition",
-                "X-Stream-Timeout",
-                "X-Stream-Timeout-Policy",
-            ]:
+            for hk in ("Content-Disposition",):
                 if hk in headers:
                     resp[hk] = headers[hk]
-        # Encourage true streaming on proxies
+
+        # Optimize for real-time streaming
         resp["X-Accel-Buffering"] = "no"
         resp["Cache-Control"] = "no-cache"
+
+        # Expose mark policy to client
+        resp["X-Auto-Mark-Read"] = "enabled" if auto_mark else "disabled"
+        resp["X-Mark-After-Bytes"] = str(threshold)
         return resp
+

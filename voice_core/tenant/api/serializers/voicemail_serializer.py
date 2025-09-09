@@ -55,7 +55,10 @@ class RecordingsFolderSerializer(serializers.Serializer):
 
 
 class UpdateVoicemailSerializer(serializers.Serializer):
-    folder_id = serializers.IntegerField(default=2)  # Default "Old" folder
+    read = serializers.BooleanField(
+        required=True,
+        help_text="Mark the voicemail as read (true) or unread (false)."
+    )
 
 
 class AllVoicemailSerializer(serializers.Serializer):

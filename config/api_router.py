@@ -77,13 +77,13 @@ voicemail_management_urls = [
         name="tenant-voicemail-recordings-folder",
     ),
 
-    # Set message as read
+    # Set message status
     path(
-        "tenants/<int:tenant_id>/users/<int:user_id>/voicemail/messages/<str:message_id>/read/",
+        "tenants/<int:tenant_id>/users/<int:user_id>/voicemail/messages/<str:message_id>/status/",
         VoicemailViewSet.as_view({
-            "put": "set_message_as_read"
+            "put": "set_message_status"
         }),
-        name="tenant-voicemail-message-read",
+        name="tenant-voicemail-message-status",
     ),
 
     # Play/fetch a message recording
