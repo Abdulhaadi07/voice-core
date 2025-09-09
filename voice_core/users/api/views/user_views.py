@@ -135,4 +135,8 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
     )
     def create(self, request, *args, **kwargs):
         """Signup endpoint at POST /api/users/"""
-        return super().create(request, *args, **kwargs)
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Unexpected error in user creation: {e}", exc_info=True)
+            return Response({"message": f"Something went wrong: {str(e)}."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -65,3 +65,17 @@ class AllVoicemailSerializer(serializers.Serializer):
     voicemail_id = serializers.IntegerField()
     total_messages = serializers.IntegerField()
     folders = RecordingsFolderSerializer(many=True)
+
+
+class VoicemailRecordingSerializer(serializers.Serializer):
+    file = serializers.FileField(
+        allow_empty_file=False,
+        help_text="Voicemail audio file (WAV or MP3)"
+    )
+
+    def validate_file(self, value):
+        # Validate file type
+        valid_mime_types = ["audio/wav"]
+        if value.content_type not in valid_mime_types:
+            raise serializers.ValidationError("Unsupported file type. Allowed: WAV")
+        return value

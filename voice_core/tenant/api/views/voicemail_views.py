@@ -15,11 +15,12 @@ from voice_core.users.models import (
     VoicemailAssignment
 )
 from voice_core.tenant.api.serializers.voicemail_serializer import (
+    AllVoicemailSerializer,
     ConfigureVoicemailSerializer,
-    VoicemailSerializer,
     RecordingsFolderSerializer,
     UpdateVoicemailSerializer,
-    AllVoicemailSerializer,
+    VoicemailSerializer,
+    VoicemailRecordingSerializer,
 )
 from voice_core.services.voicemail.assign_voicemail import (
     assign_voicemail
@@ -33,7 +34,7 @@ from voice_core.services.voicemail.update_voicemail import set_voicemail_as_read
 
 import logging
 logger = logging.getLogger(__name__)
-import requests
+
 
 
 @extend_schema(tags=["Voicemail Management"])
@@ -151,7 +152,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
             # Check if user has admin permissions
             if not IsPlatformAdminOrTenantAdmin().has_permission(request, self):
                 return Response(
-                    {"message": "You are not authorized to access this voicemail."},
+                    {"message": "Access denied"},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -369,69 +370,72 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         except ValueError:
             threshold = 8192
 
-        state = {"marked": False, "sent": 0}
+        try: 
+            state = {"marked": False, "sent": 0}
 
-        def mark_as_read_safe():
-            if state["marked"] or not auto_mark:
-                return
-            try:
-                # Folder 2 assumed = read (adjust if your domain differs)
-                set_voicemail_as_read(
-                    user.tenant,
-                    user,
-                    voicemail.voicemail_id,
-                    message_id,
-                    2  # read folder
-                )
-                state["marked"] = True
-                logger.info(
-                    "Voicemail auto-marked read after %d bytes | tenant_id=%s user_id=%s voicemail_id=%s message_id=%s",
-                    state["sent"],
-                    getattr(user.tenant, "id", "unknown"),
-                    user.id,
-                    voicemail.voicemail_id,
-                    message_id,
-                )
-            except Exception as e:
-                logger.error(
-                    "Failed auto-mark read | tenant_id=%s user_id=%s voicemail_id=%s message_id=%s error=%s",
-                    getattr(user.tenant, "id", "unknown"),
-                    getattr(user, "id", "unknown"),
-                    voicemail.voicemail_id,
-                    message_id,
-                    e,
-                    exc_info=True
-                )
+            def mark_as_read_safe():
+                if state["marked"] or not auto_mark:
+                    return
+                try:
+                    # Folder 2 assumed = read (adjust if your domain differs)
+                    set_voicemail_as_read(
+                        user.tenant,
+                        user,
+                        voicemail.voicemail_id,
+                        message_id,
+                        2  # read folder
+                    )
+                    state["marked"] = True
+                    logger.info(
+                        f"Voicemail auto-marked read after {state['sent']} bytes | "
+                        f"tenant_id={getattr(user.tenant, 'id', 'unknown')} "
+                        f"user_id={user.id} "
+                        f"voicemail_id={voicemail.voicemail_id} "
+                        f"message_id={message_id}"
+                    )
 
-        def streaming_wrapper():
-            for chunk in chunks_iter:
-                if not chunk:
-                    continue
-                state["sent"] += len(chunk)
-                if auto_mark and not state["marked"] and state["sent"] >= threshold:
+                except Exception as e:
+                    logger.error(
+                        f"Failed auto-mark read | tenant_id={getattr(user.tenant, 'id', 'unknown')} "
+                        f"user_id={getattr(user, 'id', 'unknown')} "
+                        f"voicemail_id={voicemail.voicemail_id} "
+                        f"message_id={message_id} "
+                        f"error={e}",
+                        exc_info=True
+                    )
+
+
+            def streaming_wrapper():
+                for chunk in chunks_iter:
+                    if not chunk:
+                        continue
+                    state["sent"] += len(chunk)
+                    if auto_mark and not state["marked"] and state["sent"] >= threshold:
+                        mark_as_read_safe()
+                    yield chunk
+                # Very small file (below threshold) but some data was delivered
+                if auto_mark and state["sent"] > 0 and not state["marked"]:
                     mark_as_read_safe()
-                yield chunk
-            # Very small file (below threshold) but some data was delivered
-            if auto_mark and state["sent"] > 0 and not state["marked"]:
-                mark_as_read_safe()
 
-        resp = StreamingHttpResponse(
-            streaming_wrapper(),
-            content_type=(headers or {}).get("Content-Type", "audio/wav")
-        )
+            resp = StreamingHttpResponse(
+                streaming_wrapper(),
+                content_type=(headers or {}).get("Content-Type", "audio/wav")
+            )
 
-        # Safe passthrough headers
-        if headers:
-            for hk in ("Content-Disposition",):
-                if hk in headers:
-                    resp[hk] = headers[hk]
+            # Safe passthrough headers
+            if headers:
+                for hk in ("Content-Disposition",):
+                    if hk in headers:
+                        resp[hk] = headers[hk]
 
-        # Optimize for real-time streaming
-        resp["X-Accel-Buffering"] = "no"
-        resp["Cache-Control"] = "no-cache"
+            # Optimize for real-time streaming
+            resp["X-Accel-Buffering"] = "no"
+            resp["Cache-Control"] = "no-cache"
 
-        # Expose mark policy to client
-        resp["X-Auto-Mark-Read"] = "enabled" if auto_mark else "disabled"
-        resp["X-Mark-After-Bytes"] = str(threshold)
-        return resp
+            # Expose mark policy to client
+            resp["X-Auto-Mark-Read"] = "enabled" if auto_mark else "disabled"
+            resp["X-Mark-After-Bytes"] = str(threshold)
+            return resp
+        except Exception as e:
+            return Response({"message": "Something went wrong."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
