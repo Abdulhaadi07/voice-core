@@ -11,13 +11,21 @@ from drf_spectacular.utils import (
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.permissions import (
+    AllowAny, 
+    IsAuthenticated, 
+    IsAdminUser,
+)
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from voice_core.users.models import User, ExtensionAssignment
 from voice_core.users.api.serializers.role_serializer import RoleAssignmentSerializer
-from voice_core.users.api.serializers.user_serializer import UserSerializer, UserDetailSerializer
+from voice_core.users.api.serializers.user_serializer import (
+    UserSerializer, 
+    UserDetailSerializer,
+)
+from voice_core.custom_error_exception import extract_error_message
 
 import logging
 logger = logging.getLogger(__name__)
@@ -131,12 +139,17 @@ class UserViewSet(CreateModelMixin, GenericViewSet):
         responses={
             201: UserDetailSerializer,
             400: OpenApiResponse(description="Validation error (invalid or missing fields)"),
+            500: OpenApiResponse(description="Internal server error"),
+            503: OpenApiResponse(description="Service unavailable"),
         },
     )
     def create(self, request, *args, **kwargs):
         """Signup endpoint at POST /api/users/"""
         try:
             return super().create(request, *args, **kwargs)
+        except ValueError as ve:
+            logger.error(f"ValueError in user creation: {ve}", exc_info=True)
+            return Response({"message": extract_error_message(ve)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Unexpected error in user creation: {e}", exc_info=True)
-            return Response({"message": f"Something went wrong: {str(e)}."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": f"Something went wrong. {extract_error_message(e)}."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -26,6 +26,7 @@ from voice_core.users.api.serializers.user_serializer import (
     UserListSerializer,
     UserUpdateSerializer,
 )
+from voice_core.custom_error_exception import extract_error_message
 
 import logging
 logger = logging.getLogger(__name__)
@@ -128,9 +129,15 @@ class TenantUserViewSet(viewsets.GenericViewSet,
             else:
                 payload = serializer.data
             return Response(payload, status=201, headers=headers)
+        except DRFValidationError as ve:
+            logger.warning(f"Validation error during user creation: {str(ve)}")
+            return Response({"message": f"Validation error during user creation. {extract_error_message(ve)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError as ve:
+            logger.warning(f"ValueError during user creation: {str(ve)}")
+            return Response({"message": f"ValueError during user creation. {extract_error_message(ve)}"}, status=status.HTTP_400_BAD_REQUEST) 
         except Exception as e:
             logger.error(f"Unexpected error in user creation: {e}", exc_info=True)
-            return Response({"message": f"Something went wrong: {str(e)}."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+            return Response({"message": f"Something went wrong. {extract_error_message(e)}."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
 
     @extend_schema(
         summary="Retrieve Tenant User",
@@ -158,7 +165,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
             return Response(serializer.data)
         except Exception as e:  
             logger.error(f"Error retrieving tenant user: {e}", exc_info=True)
-            return Response({"message": f"Something went wrong: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": f"Something went wrong. {extract_error_message(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         summary="Update Tenant User",
@@ -216,7 +223,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
             )
             msg = str(e)
             return Response(
-                {"message": f"User update request failed: {msg}"},
+                {"message": f"User update request failed. {msg}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
     

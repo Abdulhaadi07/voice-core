@@ -31,6 +31,7 @@ from voice_core.services.voicemail.get_voicemail import (
     get_voicemail_recording,
 )
 from voice_core.services.voicemail.update_voicemail import set_voicemail_as_read
+from voice_core.custom_error_exception import extract_error_message
 
 import logging
 logger = logging.getLogger(__name__)
@@ -99,17 +100,17 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         try:
             assign_voicemail(tenant, user, voicemail_pin, voicemail_max_messages)
         except ValidationError as e:
-            msg = "Validation Error"
+            msg = extract_error_message(e)
             logger.error(f"Voicemail assignment failed for tenant_id={tenant.id}, user_id={user.id}: {e}", exc_info=True)
             return Response(
-                {"message": f"Voicemail assignment failed: {msg}"},
+                {"message": f"Voicemail assignment failed. {msg}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            msg = str(e)
+            msg = extract_error_message(e)
             logger.error(f"Voicemail assignment failed for tenant_id={tenant.id}, user_id={user.id}: {e}", exc_info=True)
             return Response(
-                {"message": f"Voicemail assignment failed: {msg}"},
+                {"message": f"Voicemail assignment failed. {msg}"},
                 status=status.HTTP_400_BAD_REQUEST  
             )
 
