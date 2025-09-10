@@ -112,8 +112,8 @@ class TestGetTenantGlobalTemplateUuid:
     def test_get_tenant_global_template_uuid_request_exception(self, mock_get):
         mock_get.side_effect = requests.RequestException("Connection error")
 
-        result = get_tenant_global_template_uuid("admin-token", "tenant-uuid")
-        assert result is False
+        with pytest.raises(requests.RequestException):
+            get_tenant_global_template_uuid("admin-token", "tenant-uuid")
 
     @patch("voice_core.services.wazo_helpers.wazo_sip_template.requests.get")
     def test_get_tenant_global_template_uuid_non_200_status(self, mock_get):
@@ -170,8 +170,8 @@ class TestGetMasterGlobalTemplate:
     def test_get_master_global_template_request_exception(self, mock_get):
         mock_get.side_effect = requests.RequestException("Connection error")
 
-        result = get_master_global_template("admin-token")
-        assert result is None
+        with pytest.raises(requests.RequestException):
+            get_master_global_template("admin-token")
 
     @patch("voice_core.services.wazo_helpers.wazo_sip_template.requests.get")
     def test_get_master_global_template_non_200_status(self, mock_get):
@@ -234,9 +234,8 @@ class TestCreateTenantGlobalTemplate:
     @patch("voice_core.services.wazo_helpers.wazo_sip_template.requests.post")
     def test_create_tenant_global_template_request_exception(self, mock_post):
         mock_post.side_effect = requests.RequestException("Connection error")
-
-        result = create_tenant_global_template("admin-token", "tenant-uuid", {})
-        assert result is None
+        with pytest.raises(requests.RequestException):
+             create_tenant_global_template("admin-token", "tenant-uuid", {"label": "global", "options": {}})
 
     @patch("voice_core.services.wazo_helpers.wazo_sip_template.requests.post")
     def test_create_tenant_global_template_non_success_status(self, mock_post):

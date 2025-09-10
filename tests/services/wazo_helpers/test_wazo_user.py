@@ -39,15 +39,15 @@ def test_create_wazo_user_success(mock_post):
 def test_create_wazo_user_failure_status(mock_post):
     mock_response = MagicMock()
     mock_response.status_code = 400
-    mock_response.text = "Bad request"
+    mock_post.side_effect = Exception("Bad request")
     mock_post.return_value = mock_response
 
     user = DummyUser()
     admin_token = "fake-token"
     tenant_uuid = uuid.uuid4()
-
-    result = create_wazo_user(user, admin_token, tenant_uuid)
-    assert result is None
+    
+    with pytest.raises(Exception, match="Bad request"):
+        create_wazo_user(user, admin_token, tenant_uuid)
 
 @patch("voice_core.services.wazo_helpers.wazo_user.requests.post")
 def test_create_wazo_user_exception(mock_post):
@@ -57,7 +57,7 @@ def test_create_wazo_user_exception(mock_post):
     admin_token = "fake-token"
     tenant_uuid = uuid.uuid4()
 
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="Connection error"):
         create_wazo_user(user, admin_token, tenant_uuid)
 
     mock_post.assert_called_once()
@@ -95,5 +95,5 @@ def test_delete_wazo_user_failure_status(mock_delete):
 def test_delete_wazo_user_exception_returns_false(mock_delete):
     mock_delete.side_effect = Exception("Connection error")
 
-    result = delete_wazo_user(uuid.uuid4(), "fake-token")
-    assert result is False
+    with pytest.raises(Exception, match="Connection error"):
+        result = delete_wazo_user(uuid.uuid4(), "fake-token")

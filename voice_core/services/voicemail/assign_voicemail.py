@@ -90,10 +90,10 @@ def assign_voicemail(
     tenant_uuid = None
     voicemail_id = None
 
+    if not tenant.wazo_tenant_uuid:
+            raise ValueError("Tenant is missing wazo_tenant_uuid")
     try:
         admin_token = get_wazo_admin_token()
-        if not tenant.wazo_tenant_uuid:
-            raise ValueError("Tenant is missing wazo_tenant_uuid")
         tenant_uuid = str(tenant.wazo_tenant_uuid)
 
         create_user_voicemail_start_time = datetime.now()
@@ -108,17 +108,22 @@ def assign_voicemail(
             raise ValidationError("User already has a voicemail assigned.")
 
         # Create voicemail
-        voicemail_id, voicemail_pin, enabled_flag = create_user_voicemail(
-                wazo_user_id=str(user.wazo_user_id),
-                tenant_uuid=tenant_uuid,
-                admin_token=admin_token,
-                context_name=user_extension.context_name,
-                email=user.email,
-                extension_number=str(user_extension.extension),
-                pin=voicemail_pin,
-                name=user.name,
-                max_messages = voicemail_max_messages if voicemail_max_messages is not None else 10,
-            )
+        try:    
+            voicemail_id, voicemail_pin, enabled_flag = create_user_voicemail(
+                    wazo_user_id=str(user.wazo_user_id),
+                    tenant_uuid=tenant_uuid,
+                    admin_token=admin_token,
+                    context_name=user_extension.context_name,
+                    email=user.email,
+                    extension_number=str(user_extension.extension),
+                    pin=voicemail_pin,
+                    name=user.name,
+                    max_messages = voicemail_max_messages if voicemail_max_messages is not None else 10,
+                )
+        except Exception as exc:
+            logger.error(f"Failed to create voicemail for user_id={user.id}: {exc}")
+            raise RuntimeError("Voicemail creation failed") from exc
+		
         create_user_voicemail_end_time = datetime.now()
 
         # Persist voicemail assignment
@@ -170,4 +175,5 @@ def assign_voicemail(
             )
         except Exception as Rollback_exc:
             logger.error(f"Rollback encountered an error: {Rollback_exc}", exc_info=True)
-        raise
+			
+        raise 

@@ -100,120 +100,128 @@ class ExtensionViewSet(viewsets.GenericViewSet):
     )
 	@action(detail=False, methods=["post"], url_path="assign")
 	def assign(self, request, tenant_id=None, user_id=None):
-		logger.info(f"Assign extension requested tenant_id={tenant_id}, user_id={user_id}")
-		# 401 when not authenticated
-		if not request.user or not request.user.is_authenticated:
-			return Response({"message": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
-		if not tenant_id or not user_id:
-			return Response({"detail": "tenant_id and user_id are required", "message": "tenant_id and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-		try:
-			tenant_id = int(tenant_id)
-			user_id = int(user_id)
-		except ValueError as e:
-			msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
-			return Response({"detail": f"Invalid tenant_id or user_id: {msg}"}, status=status.HTTP_400_BAD_REQUEST)
-
-		# Validate payload
-		ser = AssignExtensionSerializer(data=request.data)
-		ser.is_valid(raise_exception=True)
-	    
-		extension_num = ser.validated_data.get("extension")
-		sip_username = ser.validated_data.get("sip_username")
-		sip_password = ser.validated_data.get("sip_password")
-		voicemail_max_messages = ser.validated_data.get("voicemail_max_messages")
-		voicemail_pin = ser.validated_data.get("voicemail_pin")
-
-		# Fetch user and tenant
-		try:
-			user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
-		except User.DoesNotExist:
-			return Response({"detail": "User not found for this tenant", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-
-		tenant = user.tenant
-		# contexts is stored as a list of objects; support legacy dict for backward compatibility
-		raw_contexts = tenant.contexts or []
-		if isinstance(raw_contexts, dict):
-			contexts_iter = list(raw_contexts.values())
-		else:
-			contexts_iter = raw_contexts
-		# Determine context_name from request or default to first context
-		context_name = ser.validated_data.get("context_name")
-		if not context_name:
-			first_ctx = next(iter(contexts_iter), None)
-			if not first_ctx:
-				return Response({"detail": "No contexts configured for tenant"}, status=status.HTTP_400_BAD_REQUEST)
-			context_name = first_ctx.get("name")
-		# Find context by name
-		matched_context = None
-		for ctx in contexts_iter:
-			if ctx.get("name") == context_name:
-				matched_context = ctx
-				break
-		if not matched_context:
-			return Response({"detail": f"Context '{context_name}' not found for tenant", "message": f"Context '{context_name}' not found for tenant"}, status=status.HTTP_400_BAD_REQUEST)
-
-		available_by_context = get_available_extensions(tenant.id)  
-		
-		available_in_ctx = None
-		
-		if context_name in available_by_context:
-			available_in_ctx = available_by_context[context_name]
-		else:
-			for key, vals in available_by_context.items():
-				if key == matched_context.get("name"):
-					available_in_ctx = vals
-					break
-		logger.info(f"available_by_context: {available_in_ctx}, {available_by_context}")
-
-		if not available_in_ctx or extension_num not in available_in_ctx:
-			return Response({"detail": f"Extension {extension_num} not available in context '{context_name}'", "message": f"Extension {extension_num} not available in context '{context_name}'"}, status=status.HTTP_400_BAD_REQUEST)
-		
-		# Uniqueness checks
-		if ExtensionAssignment.objects.filter(extension=str(extension_num), context_name=context_name).exists():
-			return Response(
-				{"detail": f"Extension {extension_num} already assigned in context '{context_name}'", "message": f"Extension {extension_num} already assigned in context '{context_name}'", "code": "EXTENSION_TAKEN"},
-				status=status.HTTP_409_CONFLICT
-			)
-
-		# Check if the SIP username is already in use in this context
-		if ExtensionAssignment.objects.filter(sip_username=sip_username, context_name=context_name).exists():
-			return Response(
-				{"detail": f"SIP username '{sip_username}' already in use in context '{context_name}'", "message": f"SIP username '{sip_username}' already in use in context '{context_name}'", "code": "SIP_USERNAME_TAKEN"},
-				status=status.HTTP_409_CONFLICT
-			)
-		logger.info(f"{context_name} ,,, {extension_num},,,,{user.name} ,,, {user.id}")
-
 		try: 
-			assignment = assign_extension(
-				tenant=tenant,
-				extension_num=extension_num,
-				sip_username=sip_username,
-				sip_password=sip_password,
-				user=user,
-				context_name=context_name,
-				voicemail_pin= voicemail_pin,
-				voicemail_max_messages = voicemail_max_messages,
-			)
+			logger.info(f"Assign extension requested tenant_id={tenant_id}, user_id={user_id}")
+			# 401 when not authenticated
+			if not request.user or not request.user.is_authenticated:
+				return Response({"message": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+			if not tenant_id or not user_id:
+				return Response({"detail": "tenant_id and user_id are required", "message": "tenant_id and user_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
+			try:
+				tenant_id = int(tenant_id)
+				user_id = int(user_id)
+			except ValueError as e:
+				return Response({"detail": f"Invalid tenant_id or user_id."}, status=status.HTTP_400_BAD_REQUEST)
+
+			# Validate payload
+			ser = AssignExtensionSerializer(data=request.data)
+			ser.is_valid(raise_exception=True)
 			
+			extension_num = ser.validated_data.get("extension")
+			sip_username = ser.validated_data.get("sip_username")
+			sip_password = ser.validated_data.get("sip_password")
+			voicemail_max_messages = ser.validated_data.get("voicemail_max_messages")
+			voicemail_pin = ser.validated_data.get("voicemail_pin")
 
-			logger.info(f"Assigned extension {assignment.extension} to user_id={user.id} in context '{context_name}'")
-			return Response(
-				{
-					"message": "Extension assigned successfully",
-					"user_id": user.id,
-					"tenant_id": tenant.id,
-					"line_id": assignment.wazo_line_id,
-					"extension": assignment.extension,
-					"sip_username": assignment.sip_username,
-					"context_name": assignment.context_name,
-				},
-				status=status.HTTP_201_CREATED,
-			)
+			# Fetch user and tenant
+			try:
+				user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
+			except User.DoesNotExist:
+				return Response({"detail": "User not found for this tenant", "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+			# Uniqueness checks
+			if ExtensionAssignment.objects.filter(user=user).exists():
+				return Response(
+					{"message": f"Extension already assigned to this user"},
+					status=status.HTTP_409_CONFLICT
+				)
+
+			tenant = user.tenant
+			# contexts is stored as a list of objects; support legacy dict for backward compatibility
+			raw_contexts = tenant.contexts or []
+			if isinstance(raw_contexts, dict):
+				contexts_iter = list(raw_contexts.values())
+			else:
+				contexts_iter = raw_contexts
+			# Determine context_name from request or default to first context
+			context_name = ser.validated_data.get("context_name")
+			if not context_name:
+				first_ctx = next(iter(contexts_iter), None)
+				if not first_ctx:
+					return Response({"detail": "No contexts configured for tenant"}, status=status.HTTP_400_BAD_REQUEST)
+				context_name = first_ctx.get("name")
+			# Find context by name
+			matched_context = None
+			for ctx in contexts_iter:
+				if ctx.get("name") == context_name:
+					matched_context = ctx
+					break
+			if not matched_context:
+				return Response({"detail": f"Context '{context_name}' not found for tenant", "message": f"Context '{context_name}' not found for tenant"}, status=status.HTTP_400_BAD_REQUEST)
+
+			available_by_context = get_available_extensions(tenant.id)  
+			
+			available_in_ctx = None
+			
+			if context_name in available_by_context:
+				available_in_ctx = available_by_context[context_name]
+			else:
+				for key, vals in available_by_context.items():
+					if key == matched_context.get("name"):
+						available_in_ctx = vals
+						break
+			logger.info(f"available_by_context: {available_in_ctx}, {available_by_context}")
+
+			if not available_in_ctx or extension_num not in available_in_ctx:
+				return Response({"detail": f"Extension {extension_num} not available in context '{context_name}'", "message": f"Extension {extension_num} not available in context '{context_name}'"}, status=status.HTTP_400_BAD_REQUEST)
+			
+			# Uniqueness checks
+			if ExtensionAssignment.objects.filter(extension=str(extension_num), context_name=context_name).exists():
+				return Response(
+					{"detail": f"Extension {extension_num} already assigned in context '{context_name}'", "message": f"Extension {extension_num} already assigned in context '{context_name}'", "code": "EXTENSION_TAKEN"},
+					status=status.HTTP_409_CONFLICT
+				)
+
+			# Check if the SIP username is already in use in this context
+			if ExtensionAssignment.objects.filter(sip_username=sip_username, context_name=context_name).exists():
+				return Response(
+					{"detail": f"SIP username '{sip_username}' already in use in context '{context_name}'", "message": f"SIP username '{sip_username}' already in use in context '{context_name}'", "code": "SIP_USERNAME_TAKEN"},
+					status=status.HTTP_409_CONFLICT
+				)
+			logger.info(f"{context_name} ,,, {extension_num},,,,{user.name} ,,, {user.id}")
+
+			try: 
+				assignment = assign_extension(
+					tenant=tenant,
+					extension_num=extension_num,
+					sip_username=sip_username,
+					sip_password=sip_password,
+					user=user,
+					context_name=context_name,
+					voicemail_pin= voicemail_pin,
+					voicemail_max_messages = voicemail_max_messages,
+				)
+
+				logger.info(f"Assigned extension {assignment.extension} to user_id={user.id} in context '{context_name}'")
+				return Response(
+					{
+						"message": "Extension assigned successfully",
+						"user_id": user.id,
+						"tenant_id": tenant.id,
+						"line_id": assignment.wazo_line_id,
+						"extension": assignment.extension,
+						"sip_username": assignment.sip_username,
+						"context_name": assignment.context_name,
+					},
+					status=status.HTTP_201_CREATED,
+				)
+			except Exception as e:
+				msg = str(e)
+				return Response({"detail": f"Extension assignment request failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		except Exception as e:
-			msg = str(e)
-			return Response({"detail": f"Extension assignment request failed: {msg}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+			logger.error(f"Error in assign extension: {e}")
+			return Response({"message": "Something went wrong."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 		

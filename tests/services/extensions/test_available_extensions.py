@@ -86,9 +86,8 @@ def test_tenant_not_found_returns_empty_dict(mock_tenant):
     mock_tenant.DoesNotExist = type("DoesNotExist", (Exception,), {})
     mock_tenant.objects.get.side_effect = mock_tenant.DoesNotExist
 
-    out = get_available_extensions(999)
-
-    assert out == {}
+    with pytest.raises(mock_tenant.DoesNotExist):
+        get_available_extensions(999)
 
 @patch(f"{MODULE}.ExtensionAssignment")
 @patch(f"{MODULE}.Tenant")
@@ -102,4 +101,5 @@ def test_generic_exception_returns_empty_dict(mock_tenant, mock_assignments):
     mock_tenant.objects.get.return_value = tenant
     mock_assignments.objects.filter.side_effect = RuntimeError("db error")
 
-    out = get_available_extensions(1)
+    with pytest.raises(RuntimeError, match="db error"):
+        get_available_extensions(1) 

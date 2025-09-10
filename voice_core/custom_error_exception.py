@@ -9,9 +9,9 @@ from rest_framework.exceptions import (
     MethodNotAllowed,
     NotAcceptable,
     UnsupportedMediaType,
-    Throttled
+    Throttled,
+    ErrorDetail
 )
-
 
 # ----- Custom 5xx Exceptions -----
 class BadGateway(APIException):
@@ -70,3 +70,24 @@ def raise_custom_drf_exception(status_code: int, detail: str = None) -> APIExcep
     }
 
     return exception_map.get(status_code, APIException(detail=detail) if detail else APIException())
+
+
+
+def extract_error_message(exc) -> str:
+    """
+    Recursively extract a concise, readable error message from DRF exceptions,
+    ErrorDetail objects, dicts, or lists.
+    """
+    if hasattr(exc, "detail"):
+        return extract_error_message(exc.detail)
+
+    if isinstance(exc, dict):
+        return "; ".join(f"{k}: {extract_error_message(v)}" for k, v in exc.items())
+
+    if isinstance(exc, list):
+        return "; ".join(extract_error_message(i) for i in exc)
+
+    if isinstance(exc, ErrorDetail):
+        return str(exc)
+
+    return str(exc) or "An unexpected error occurred"

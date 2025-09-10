@@ -16,7 +16,7 @@ from voice_core.services.wazo_helpers.wazo_user import (
 )
 from voice_core.services.wazo_helpers.wazo_admin_token import get_wazo_admin_token
 from voice_core.users.utils import resolve_tenant_from_email
-from voice_core.custom_error_exception import raise_custom_drf_exception
+from voice_core.custom_error_exception import raise_custom_drf_exception, extract_error_message
 from voice_core.utils.mail import send_welcome_msg
 
 if TYPE_CHECKING:
@@ -173,13 +173,18 @@ class UserManager(DjangoUserManager["User"]):
                 # If saving Wazo info fails, rollback everything
                 logger.exception(f"Fail at saving wazo info: {wazo_user_id} {e} ")
                 self._rollback_on_failure(email, cognito_sub, user, str(wazo_user_id), admin_token)
-                raise raise_custom_drf_exception(503,f"Failed to save Wazo information: {str(e)}")
+                raise raise_custom_drf_exception(503,f"Failed to save Wazo information: {extract_error_message(e)}")
+
+        except ValueError as ve:
+            self._rollback_on_failure(email, cognito_sub, user)
+            logger.error(f"ValueError in user creation: {ve}", exc_info=True)
+            raise raise_custom_drf_exception(400,f"Failed to create New user: {extract_error_message(e)}")
 
         except Exception as e:
             # If any other error occurs, rollback everything
             self._rollback_on_failure(email, cognito_sub, user)
             logger.exception(f"Failed to create user: {str(e)}")
-            raise raise_custom_drf_exception(503,f"Failed to create New user: {str(e)}")
+            raise raise_custom_drf_exception(503,f"Failed to create New user: {extract_error_message(e)}")
 
     def _rollback_on_failure(self, email: str, cognito_sub: str | None, user=None, wazo_user_uuid: str | None = None, admin_token: str | None = None):
         """Rollback method to delete user from all systems on failure."""

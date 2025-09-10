@@ -134,7 +134,7 @@ def assign_line_with_sip_endpoint(admin_token: str, tenant_uuid: str, line_id: i
     except requests.RequestException as exc:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.error(f"assign_line_with_sip_endpoint_request_error tenant_uuid={tenant_uuid} line_id={line_id} sip_uuid={sip_uuid} error={exc} duration_ms={duration_ms}")
-        return False
+        raise
     duration_ms = int((time.perf_counter() - start) * 1000)
     if resp.status_code == 204:
         logger.info(f"assign_line_with_sip_endpoint_success tenant_uuid={tenant_uuid} line_id={line_id} sip_uuid={sip_uuid} duration_ms={duration_ms}")
@@ -155,7 +155,7 @@ def assign_line_with_extension(admin_token: str, tenant_uuid: str, line_id: int,
     except requests.RequestException as exc:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.error(f"assign_line_with_extension_request_error tenant_uuid={tenant_uuid} line_id={line_id} extension_id={extension_id} error={exc} duration_ms={duration_ms}")
-        return False
+        raise
     duration_ms = int((time.perf_counter() - start) * 1000)
     if resp.status_code == 204:
         logger.info(f"assign_line_with_extension_success tenant_uuid={tenant_uuid} line_id={line_id} extension_id={extension_id} duration_ms={duration_ms}")
@@ -176,7 +176,7 @@ def assign_user_with_line(admin_token: str, tenant_uuid: str, user_uuid: str, li
     except requests.RequestException as exc:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.error(f"assign_user_with_line_request_error tenant_uuid={tenant_uuid} user_uuid={user_uuid} line_id={line_id} error={exc} duration_ms={duration_ms}")
-        return False
+        raise
     duration_ms = int((time.perf_counter() - start) * 1000)
     if resp.status_code == 204:
         logger.info(f"assign_user_with_line_success tenant_uuid={tenant_uuid} user_uuid={user_uuid} line_id={line_id} duration_ms={duration_ms}")

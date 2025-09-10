@@ -58,7 +58,7 @@ def get_tenant_global_template_uuid(admin_token: str, tenant_uuid: str):
     except requests.RequestException as exc:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.error(f"get_global_template_uuid_request_error tenant_uuid={tenant_uuid} error={exc} duration_ms={duration_ms}")
-        return False
+        raise 
     duration_ms = int((time.perf_counter() - start) * 1000)
     if resp.status_code == 200:
         payload = resp.json()
@@ -89,7 +89,7 @@ def get_master_global_template(admin_token: str) -> dict | None:
     except requests.RequestException as exc:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.error(f"get_master_global_template_request_error error={exc} duration_ms={duration_ms}")
-        return None
+        raise
 
     duration_ms = int((time.perf_counter() - start) * 1000)
     if resp.status_code != 200:
@@ -124,7 +124,7 @@ def create_tenant_global_template(admin_token: str, tenant_uuid: str, master_glo
     except requests.RequestException as exc:
         duration_ms = int((time.perf_counter() - start) * 1000)
         logger.error(f"create_tenant_global_template_request_error tenant_uuid={tenant_uuid} error={exc} duration_ms={duration_ms}")
-        return None
+        raise
 
     duration_ms = int((time.perf_counter() - start) * 1000)
     if resp.status_code not in (200, 201):

@@ -26,6 +26,7 @@ from voice_core.users.api.serializers.user_serializer import (
     UserListSerializer,
     UserUpdateSerializer,
 )
+from voice_core.custom_error_exception import extract_error_message
 
 import logging
 logger = logging.getLogger(__name__)
@@ -89,44 +90,54 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         },
     )
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        # Tenant limit check
-        tenant_id = self.kwargs.get("tenant_id")
-        tenant = get_object_or_404(Tenant, id=tenant_id)
-        current_count = User.objects.filter(tenant_id=tenant_id).count()
-        if getattr(tenant, "max_users", None) is not None and current_count >= tenant.max_users:
-            return Response({"message": "Max user count reached for this tenant"}, status=400)
-
-        # Duplicate email fast fail
-        email = serializer.validated_data.get("email")
-        if User.objects.filter(email=email, tenant_id=tenant_id).exists():
-            return Response({"message": "User already exists"}, status=409)
-
-        # Try create with one retry on timeout for external calls inside manager
         try:
-            user = self.perform_create(serializer)
-        except (socket.timeout, requests.Timeout):
-            logger.warning("Timeout during user creation, retrying once...")
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            # Tenant limit check
+            tenant_id = self.kwargs.get("tenant_id")
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+            current_count = User.objects.filter(tenant_id=tenant_id).count()
+            if getattr(tenant, "max_users", None) is not None and current_count >= tenant.max_users:
+                return Response({"message": "Max user count reached for this tenant"}, status=400)
+
+            # Duplicate email fast fail
+            email = serializer.validated_data.get("email")
+            if User.objects.filter(email=email, tenant_id=tenant_id).exists():
+                return Response({"message": "User already exists"}, status=409)
+
+            # Try create with one retry on timeout for external calls inside manager
             try:
                 user = self.perform_create(serializer)
+            except (socket.timeout, requests.Timeout):
+                logger.warning("Timeout during user creation, retrying once...")
+                try:
+                    user = self.perform_create(serializer)
+                except Exception as e:
+                    logger.warning(f"Error during user creation: {e}")
+                    return Response({"message": f"System busy. Try again later. {str(e)}"}, status=503)
+            except DRFValidationError as e:
+                logger.warning(f"Validation error during user creation: {str(e)}")
+                return Response({"message": f"Validation error during user creation: {str(e)}"}, status=400)
             except Exception as e:
-                logger.warning(f"Error during user creation: {e}")
-                return Response({"message": f"System busy. Try again later. {str(e)}"}, status=503)
-        except DRFValidationError as e:
-            logger.warning(f"Validation error during user creation: {str(e)}")
-            return Response({"message": f"Validation error during user creation: {str(e)}"}, status=400)
-        except Exception as e:
-            msg = str(e)
-            return Response({"message": f"Registration failed: {msg}"}, status=400)
+                msg = str(e)
+                return Response({"message": f"Registration failed: {msg}"}, status=400)
 
-        headers = self.get_success_headers(serializer.data)
-        # If this isn't a real User instance (e.g., MagicMock in tests), avoid heavy serialization
-        if isinstance(user, User):
-            payload = UserDetailSerializer(user, context=self.get_serializer_context()).data
-        else:
-            payload = serializer.data
-        return Response(payload, status=201, headers=headers)
+            headers = self.get_success_headers(serializer.data)
+            # If this isn't a real User instance (e.g., MagicMock in tests), avoid heavy serialization
+            if isinstance(user, User):
+                payload = UserDetailSerializer(user, context=self.get_serializer_context()).data
+            else:
+                payload = serializer.data
+            return Response(payload, status=201, headers=headers)
+        except DRFValidationError as ve:
+            logger.warning(f"Validation error during user creation: {str(ve)}")
+            return Response({"message": f"Validation error during user creation. {extract_error_message(ve)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError as ve:
+            logger.warning(f"ValueError during user creation: {str(ve)}")
+            return Response({"message": f"ValueError during user creation. {extract_error_message(ve)}"}, status=status.HTTP_400_BAD_REQUEST) 
+        except Exception as e:
+            logger.error(f"Unexpected error in user creation: {e}", exc_info=True)
+            return Response({"message": f"Something went wrong. {extract_error_message(e)}."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
 
     @extend_schema(
         summary="Retrieve Tenant User",
@@ -140,17 +151,21 @@ class TenantUserViewSet(viewsets.GenericViewSet,
         },
     )
     def retrieve(self, request, *args, **kwargs):
-        user_id = self.kwargs.get("user_id")
-        tenant_id = self.kwargs.get("tenant_id")
-        tenant = get_object_or_404(Tenant, id=tenant_id)
-        user = get_object_or_404(User, id=user_id, tenant=tenant)
-        logger.info(
-            "Tenant user retrieved",
-            extra={"tenant_id": tenant.id, "user_id": user.id, "email": user.email},
-        )
-        
-        serializer = UserDetailSerializer(user, context=self.get_serializer_context())
-        return Response(serializer.data)
+        try:
+            user_id = self.kwargs.get("user_id")
+            tenant_id = self.kwargs.get("tenant_id")
+            tenant = get_object_or_404(Tenant, id=tenant_id)
+            user = get_object_or_404(User, id=user_id, tenant=tenant)
+            logger.info(
+                "Tenant user retrieved",
+                extra={"tenant_id": tenant.id, "user_id": user.id, "email": user.email},
+            )
+            
+            serializer = UserDetailSerializer(user, context=self.get_serializer_context())
+            return Response(serializer.data)
+        except Exception as e:  
+            logger.error(f"Error retrieving tenant user: {e}", exc_info=True)
+            return Response({"message": f"Something went wrong. {extract_error_message(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         summary="Update Tenant User",
@@ -208,7 +223,7 @@ class TenantUserViewSet(viewsets.GenericViewSet,
             )
             msg = str(e)
             return Response(
-                {"message": f"User update request failed: {msg}"},
+                {"message": f"User update request failed. {msg}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
     
