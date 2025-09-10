@@ -75,18 +75,18 @@ class TestFetchAllVoicemail:
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.get")
     def test_fetch_all_voicemail_http_error(self, mock_get):
         mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("404 Not Found")
+        mock_response.raise_for_status.side_effect = requests.RequestException("404 Not Found")
         mock_get.return_value = mock_response
 
-        result = fetch_all_voicemail("admin-token", 123)
-        assert result is None
+        with pytest.raises(requests.RequestException, match="404 Not Found"):
+            fetch_all_voicemail("admin-token", 123)
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.get")
     def test_fetch_all_voicemail_request_exception(self, mock_get):
         mock_get.side_effect = requests.RequestException("Connection error")
 
-        result = fetch_all_voicemail("admin-token", 123)
-        assert result is None
+        with pytest.raises(requests.RequestException, match="Connection error"):
+            fetch_all_voicemail("admin-token", 123)
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.get")
     def test_fetch_all_voicemail_request_exception_with_response(self, mock_get):
@@ -96,8 +96,8 @@ class TestFetchAllVoicemail:
         exception.response = mock_response
         mock_get.side_effect = exception
 
-        result = fetch_all_voicemail("admin-token", 123)
-        assert result is None
+        with pytest.raises(requests.RequestException, match="Connection error"):
+            fetch_all_voicemail("admin-token", 123)
 
 
 class TestFetchVoicemailsByFolder:
@@ -135,15 +135,15 @@ class TestFetchVoicemailsByFolder:
         mock_response.raise_for_status.side_effect = requests.HTTPError("404 Not Found")
         mock_get.return_value = mock_response
 
-        result = fetch_voicemails_by_folder("admin-token", 123, 1)
-        assert result is None
+        with pytest.raises(requests.HTTPError, match="404 Not Found"):
+            fetch_voicemails_by_folder("admin-token", 123, 1)
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.get")
     def test_fetch_voicemails_by_folder_request_exception(self, mock_get):
         mock_get.side_effect = requests.RequestException("Connection error")
 
-        result = fetch_voicemails_by_folder("admin-token", 123, 1)
-        assert result is None
+        with pytest.raises(requests.RequestException, match="Connection error"):
+            fetch_voicemails_by_folder("admin-token", 123, 1)
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.get")
     def test_fetch_voicemails_by_folder_request_exception_with_response(self, mock_get):
@@ -153,8 +153,8 @@ class TestFetchVoicemailsByFolder:
         exception.response = mock_response
         mock_get.side_effect = exception
 
-        result = fetch_voicemails_by_folder("admin-token", 123, 1)
-        assert result is None
+        with pytest.raises(requests.RequestException, match="Connection error"):
+            fetch_voicemails_by_folder("admin-token", 123, 1)
 
 
 class TestUpdateVoicemailAsRead:
@@ -197,15 +197,16 @@ class TestUpdateVoicemailAsRead:
         mock_response.raise_for_status.side_effect = requests.HTTPError("400 Bad Request")
         mock_put.return_value = mock_response
 
-        result = update_voicemail_as_read("admin-token", 123, "msg-123", 2)
-        assert result is None
+        with pytest.raises(requests.HTTPError, match="400 Bad Request"):
+            update_voicemail_as_read("admin-token", 123, "msg-123", 2)
+       
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.put")
     def test_update_voicemail_as_read_request_exception(self, mock_put):
         mock_put.side_effect = requests.RequestException("Connection error")
 
-        result = update_voicemail_as_read("admin-token", 123, "msg-123", 2)
-        assert result is None
+        with pytest.raises(requests.RequestException, match="Connection error"):
+            update_voicemail_as_read("admin-token", 123, "msg-123", 2)
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.put")
     def test_update_voicemail_as_read_request_exception_with_response(self, mock_put):
@@ -215,8 +216,8 @@ class TestUpdateVoicemailAsRead:
         exception.response = mock_response
         mock_put.side_effect = exception
 
-        result = update_voicemail_as_read("admin-token", 123, "msg-123", 2)
-        assert result is None
+        with pytest.raises(requests.RequestException, match="Connection error"):   
+            update_voicemail_as_read("admin-token", 123, "msg-123", 2)
 
 
 class TestFetchVoicemailRecording:
@@ -269,15 +270,15 @@ class TestFetchVoicemailRecording:
         mock_response.raise_for_status.side_effect = requests.HTTPError("404 Not Found")
         mock_get.return_value = mock_response
 
-        result = fetch_voicemail_recording("admin-token", 123, "msg-123")
-        assert result == (None, None)
+        with pytest.raises(requests.HTTPError, match="404 Not Found"):  
+            fetch_voicemail_recording("admin-token", 123, "msg-123")
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.get")
     def test_fetch_voicemail_recording_request_exception(self, mock_get):
         mock_get.side_effect = requests.RequestException("Connection error")
 
-        result = fetch_voicemail_recording("admin-token", 123, "msg-123")
-        assert result == (None, None)
+        with pytest.raises(requests.RequestException, match="Connection error"):
+            fetch_voicemail_recording("admin-token", 123, "msg-123")
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.get")
     def test_fetch_voicemail_recording_request_exception_with_response(self, mock_get):
@@ -286,9 +287,8 @@ class TestFetchVoicemailRecording:
         exception = requests.RequestException("Connection error")
         exception.response = mock_response
         mock_get.side_effect = exception
-
-        result = fetch_voicemail_recording("admin-token", 123, "msg-123")
-        assert result == (None, None)
+        with pytest.raises(requests.RequestException, match="Connection error"):
+             fetch_voicemail_recording("admin-token", 123, "msg-123")
 
     @patch("voice_core.services.wazo_helpers.wazo_voicemail.requests.get")
     def test_fetch_voicemail_recording_different_content_type(self, mock_get):
@@ -356,10 +356,16 @@ class TestIntegrationScenarios:
     def test_error_handling_consistency(self):
         """Test that all functions handle None/error cases consistently."""
         # These functions should return None on error
-        assert fetch_all_voicemail("", 0) is None  # Will fail due to invalid URL
-        assert fetch_voicemails_by_folder("", 0, 0) is None
-        assert update_voicemail_as_read("", 0, "", 0) is None
+
+        with pytest.raises(requests.RequestException):
+            fetch_all_voicemail("", 0)
+        with pytest.raises(requests.RequestException):
+            fetch_voicemails_by_folder("", 0, 0)
+        with pytest.raises(requests.RequestException):
+            update_voicemail_as_read("", 0, "", 0)
+        
         
         # This function returns tuple of (None, None) on error
-        result = fetch_voicemail_recording("", 0, "")
-        assert result == (None, None)
+
+        with pytest.raises(requests.RequestException):
+            fetch_voicemail_recording("", 0, "")

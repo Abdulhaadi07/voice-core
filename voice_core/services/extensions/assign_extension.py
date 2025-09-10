@@ -204,67 +204,116 @@ def assign_extension(
 		
 		# 1) Create line
 		create_line_start_time = datetime.now()
-		line_id, provisioning_extension = create_line(admin_token, tenant_uuid, resolved_context_name)
+		try:
+			line_id, provisioning_extension = create_line(admin_token, tenant_uuid, resolved_context_name)
+		except Exception as exc:
+			logger.error(f"Failed to create line for tenant={tenant_uuid}, context={resolved_context_name}: {exc}")
+			raise RuntimeError("Line creation failed") from exc
 		create_line_end_time = datetime.now()
 
 		# 2) Create extension in context (exten is the number)
-		extension_id = create_extension(admin_token, tenant_uuid, resolved_context_name, extension_num)
+		try:
+			extension_id = create_extension(admin_token, tenant_uuid, resolved_context_name, extension_num)
+		except Exception as exc:
+			logger.error(
+				f"Failed to create extension={extension_num} for tenant={tenant_uuid}, context={resolved_context_name}: {exc}"
+			)
+			raise RuntimeError("Extension creation failed") from exc
 		create_extension_end_time = datetime.now()
+
 		# 3) Create SIP endpoint
 		sip_label = f"sip-E-{extension_num}-L-{line_id}"
 		sip_name = sip_label
-		sip_uuid, _, _ = create_sip_endpoint(
-			admin_token=admin_token,
-			tenant_uuid=tenant_uuid,
-			username=sip_username,
-			password=sip_password,
-			label=sip_label
-		)
+		try:
+			sip_uuid, _, _ = create_sip_endpoint(
+				admin_token=admin_token,
+				tenant_uuid=tenant_uuid,
+				username=sip_username,
+				password=sip_password,
+				label=sip_label
+			)
+		except Exception as exc:
+			logger.error(
+				f"Failed to create SIP endpoint (sip_username={sip_username}) for line_id={line_id}, "
+				f"tenant={tenant_uuid}, context={resolved_context_name}: {exc}"
+			)
+			raise RuntimeError("SIP endpoint creation failed") from exc
 		create_sip_endpoint_end_time = datetime.now()
 
 		# 4) Attach SIP endpoint to line
-		if not assign_line_with_sip_endpoint(admin_token, tenant_uuid, line_id, sip_uuid):
-			raise RuntimeError("Failed to attach SIP endpoint to line")
+		try:
+			if not assign_line_with_sip_endpoint(admin_token, tenant_uuid, line_id, sip_uuid):
+				raise RuntimeError("Failed to attach SIP endpoint to line")
+		except Exception as exc:
+			logger.error(
+				f"Error while attaching SIP endpoint (sip_uuid={sip_uuid}) to line_id={line_id} "
+				f"for tenant={tenant_uuid}: {exc}"
+			)
+			raise RuntimeError("Failed to attach SIP endpoint to line") from exc
 		assign_line_with_sip_endpoint_end_time = datetime.now()
 
 		# 5) Attach line to extension
-		if not assign_line_with_extension(admin_token, tenant_uuid, line_id, extension_id):
-			raise RuntimeError("Failed to attach line to extension")
+		try:
+			if not assign_line_with_extension(admin_token, tenant_uuid, line_id, extension_id):
+				raise RuntimeError("Failed to attach line to extension")
+		except Exception as exc:
+			logger.error(
+				f"Error while attaching line_id={line_id} to extension_id={extension_id} "
+				f"for tenant={tenant_uuid}: {exc}"
+			)
+			raise RuntimeError("Failed to attach line to extension") from exc
 		assign_line_with_extension_end_time = datetime.now()
 
 		# 6) Attach line to user
 		if not getattr(user, "wazo_user_id", None):
 			raise ValueError("User is missing wazo_user_id")
 		user_uuid = str(user.wazo_user_id)
-		if not assign_user_with_line(admin_token, tenant_uuid, user_uuid, line_id):
-			raise RuntimeError("Failed to attach line to user")
+		try:
+			if not assign_user_with_line(admin_token, tenant_uuid, user_uuid, line_id):
+				raise RuntimeError("Failed to attach line to user")
+		except Exception as exc:
+			logger.error(
+				f"Error while attaching line_id={line_id} to user_uuid={user_uuid} "
+				f"for tenant={tenant_uuid}: {exc}"
+			)
+			raise RuntimeError("Failed to attach line to user") from exc
 		assign_user_with_line_end_time = datetime.now()
 
 		# 7) Create voicemail only if a PIN is provided
 		enabled_flag = False
 		if voicemail_pin is not None:
-			voicemail_id, voicemail_pin, enabled_flag = create_user_voicemail(
-					wazo_user_id=str(user.wazo_user_id),
-					tenant_uuid=tenant_uuid,
-					admin_token=admin_token,
-					context_name=resolved_context_name,
-					email=user.email,
-					extension_number=str(extension_num),
-					pin=voicemail_pin,
-					name=user.name,
-					max_messages = voicemail_max_messages if voicemail_max_messages is not None else 10,
+			try:
+				voicemail_id, voicemail_pin, enabled_flag = create_user_voicemail(
+						wazo_user_id=str(user.wazo_user_id),
+						tenant_uuid=tenant_uuid,
+						admin_token=admin_token,
+						context_name=resolved_context_name,
+						email=user.email,
+						extension_number=str(extension_num),
+						pin=voicemail_pin,
+						name=user.name,
+						max_messages = voicemail_max_messages if voicemail_max_messages is not None else 10,
+					)
+			except Exception as exc:
+				logger.error(
+					f"Failed to create voicemail for user_uuid={user_uuid}, tenant={tenant_uuid}, context={resolved_context_name}: {exc}"
 				)
+				raise RuntimeError("Voicemail creation failed") from exc	
 		create_user_voicemail_end_time = datetime.now()
 
 		# 8) Persist local assignment
-		assignment = ExtensionAssignment.objects.create(
-			extension=str(extension_num),
-			sip_username=sip_username,
-			sip_password=sip_password,
-			user=user,
-			wazo_line_id=line_id,
-			context_name=context_name,
-		)
+		try: 
+			assignment = ExtensionAssignment.objects.create(
+				extension=str(extension_num),
+				sip_username=sip_username,
+				sip_password=sip_password,
+				user=user,
+				wazo_line_id=line_id,
+				context_name=context_name,
+			)
+		except Exception as exc:
+			logger.error(f"Failed to create ExtensionAssignment in DB for user_id={user.id}: {exc}")
+			raise RuntimeError("Failed to save ExtensionAssignment") from exc
 
 		# Update user config to enable extension 
 		user.config.extension_enabled = True
@@ -275,11 +324,15 @@ def assign_extension(
 			user.config.voicemail_enabled = True
 			user.config.save()
 
-			VoicemailAssignment.objects.create(
-				voicemail_id=voicemail_id,
-				voicemail_pin=voicemail_pin,
-				user=user,
-			)	
+			try:
+				VoicemailAssignment.objects.create(
+					voicemail_id=voicemail_id,
+					voicemail_pin=voicemail_pin,
+					user=user,
+				)	
+			except Exception as exc:
+				logger.error(f"Failed to create VoicemailAssignment in DB for user_id={user.id}: {exc}")
+				raise RuntimeError("Failed to save VoicemailAssignment") from exc
 		save_assignment_end_time = datetime.now()
 
 		logger.info(
@@ -333,5 +386,4 @@ def assign_extension(
 			)
 		except Exception as Rollback_exc:
 			logger.error(f"Rollback encountered an error: {Rollback_exc}", exc_info=True)
-		raise
-		
+		raise 

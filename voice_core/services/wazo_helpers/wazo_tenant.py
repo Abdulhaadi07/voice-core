@@ -65,7 +65,7 @@ def create_wazo_tenant(tenant_name: str, admin_token: str) -> str: # return tena
             return None
     except Exception as e:
         logger.info(f"Request failed: {e}")
-        return None
+        raise
 
 
 # def delete_wazo_tenant(tenant_name: str, admin_token: str) -> str: # return tenant uuid

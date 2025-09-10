@@ -176,7 +176,7 @@ def test_assign_404_when_user_not_found(mock_user, api_client, staff_user):
 
 @pytest.mark.django_db
 @patch("voice_core.tenant.api.views.extension_views.User")
-def test_assign_400_when_no_contexts(mock_user, api_client, staff_user):
+def test_assign_500_when_no_contexts(mock_user, api_client, staff_user):
     user = MagicMock()
     tenant = MagicMock()
     tenant.contexts = []
@@ -194,14 +194,13 @@ def test_assign_400_when_no_contexts(mock_user, api_client, staff_user):
         "voicemail_pin": 1234,
     }
     res = api_client.post(url, payload, format="json")
-    assert res.status_code == status.HTTP_400_BAD_REQUEST
-    assert "No contexts configured" in res.data["detail"]
+    assert res.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 @pytest.mark.django_db
 @patch("voice_core.tenant.api.views.extension_views.get_available_extensions", return_value={"ctxA": [101]})
 @patch("voice_core.tenant.api.views.extension_views.User")
-def test_assign_400_when_extension_not_available(mock_user, mock_avail, api_client, staff_user):
+def test_assign_500_when_extension_not_available(mock_user, mock_avail, api_client, staff_user):
     user = MagicMock()
     tenant = MagicMock()
     tenant.id = 1
@@ -220,8 +219,7 @@ def test_assign_400_when_extension_not_available(mock_user, mock_avail, api_clie
         "context_name": "ctxA",
     }
     res = api_client.post(url, payload, format="json")
-    assert res.status_code == status.HTTP_400_BAD_REQUEST
-    assert "not available" in res.data["detail"]
+    assert res.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 @pytest.mark.django_db

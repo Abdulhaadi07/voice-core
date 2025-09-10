@@ -46,7 +46,7 @@ def fetch_all_voicemail(admin_token: str, voicemail_id: int
             f"Failed to fetch voicemail recordings (voicemail_id={voicemail_id}): {e}, "
             f"response={_truncate(getattr(e.response, 'text', ''))}"
         )
-        return None
+        raise 
 
 
 def fetch_voicemails_by_folder(admin_token: str, voicemail_id: int, folder_id: int
@@ -67,7 +67,7 @@ def fetch_voicemails_by_folder(admin_token: str, voicemail_id: int, folder_id: i
             f"(voicemail_id={voicemail_id}, folder_id={folder_id}): {e}, "
             f"response={_truncate(getattr(e.response, 'text', ''))}"
         )
-        return None
+        raise
 
 
 def update_voicemail_as_read(
@@ -90,7 +90,7 @@ def update_voicemail_as_read(
             f"(voicemail_id={voicemail_id}, message_id={message_id}, folder_id={folder_id}): {e}, "
             f"response={_truncate(getattr(e.response, 'text', ''))}"
         )
-        return None
+        raise
 
 
 def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: str, stream_timeout: int = 15) -> Tuple[Optional[Iterator[bytes]], Optional[Dict[str, str]]]:
@@ -172,10 +172,16 @@ def fetch_voicemail_recording(admin_token: str, voicemail_id: int, message_id: s
             f"Timeout fetching voicemail recording (voicemail_id={voicemail_id}, message_id={message_id}): {e}"
         )
         # Re-raise timeouts to let upstream map to 504
-        raise
+        raise TimeoutError("Timeout fetching voicemail recording") from e
     except requests.RequestException as e:
         logger.error(
             f"Failed to fetch voicemail recording (voicemail_id={voicemail_id}, message_id={message_id}): "
             f"{e}, response={_truncate(getattr(e.response, 'text', ''))}"
         )
-        return None, None
+        raise 
+    except Exception as e:
+        logger.error(
+            f"Unexpected error fetching voicemail recording (voicemail_id={voicemail_id}, message_id={message_id}): {e}",
+            exc_info=True
+        )
+        raise

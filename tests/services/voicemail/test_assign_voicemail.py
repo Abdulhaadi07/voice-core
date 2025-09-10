@@ -366,12 +366,12 @@ class TestAssignVoicemail:
         mock_get_token.return_value = "admin-token-123"
         mock_ext_assignment.objects.get.return_value = DummyExtensionAssignment()
         mock_vm_assignment.objects.filter.return_value.exists.return_value = False
-        mock_create_voicemail.side_effect = Exception("Wazo API error")
+        mock_create_voicemail.side_effect = Exception("Voicemail creation failed")
         
         tenant = DummyTenant()
         user = DummyUser()
         
-        with pytest.raises(Exception, match="Wazo API error"):
+        with pytest.raises(Exception, match="Voicemail creation failed"):
             assign_voicemail(tenant, user, 1234, 10)
         
         # Should trigger rollback
@@ -417,7 +417,7 @@ class TestAssignVoicemail:
     @patch("voice_core.services.voicemail.assign_voicemail.get_wazo_admin_token")
     def test_assign_voicemail_rollback_fails(self, mock_get_token, mock_create_voicemail, mock_ext_assignment, mock_vm_assignment, mock_rollback):
         mock_get_token.return_value = "admin-token-123"
-        mock_create_voicemail.side_effect = Exception("Wazo API error")
+        mock_create_voicemail.side_effect = Exception("Voicemail creation failed")
         mock_ext_assignment.objects.get.return_value = DummyExtensionAssignment()
         mock_vm_assignment.objects.filter.return_value.exists.return_value = False
         mock_rollback.side_effect = Exception("Rollback error")
@@ -426,7 +426,7 @@ class TestAssignVoicemail:
         user = DummyUser()
         
         # Should still raise the original exception, not the rollback exception
-        with pytest.raises(Exception, match="Wazo API error"):
+        with pytest.raises(Exception, match="Voicemail creation failed"):
             assign_voicemail(tenant, user, 1234, 10)
 
     @patch("voice_core.services.voicemail.assign_voicemail.datetime")

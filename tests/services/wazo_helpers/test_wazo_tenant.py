@@ -42,8 +42,8 @@ def test_create_wazo_tenant_failure_status(mock_post):
 def test_create_wazo_tenant_raises_request_exception(mock_post):
     mock_post.side_effect = Exception("Connection error")
 
-    result = create_wazo_tenant("TenantName", "admin-token-123")
-    assert result is None
+    with pytest.raises(Exception):
+        create_wazo_tenant("TenantName", "admin-token-123")
 
 
 def test_get_wazo_tenant_uuid_existing_tenant(tenant):

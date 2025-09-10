@@ -112,8 +112,7 @@ class ExtensionViewSet(viewsets.GenericViewSet):
 				tenant_id = int(tenant_id)
 				user_id = int(user_id)
 			except ValueError as e:
-				msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
-				return Response({"detail": f"Invalid tenant_id or user_id: {msg}"}, status=status.HTTP_400_BAD_REQUEST)
+				return Response({"detail": f"Invalid tenant_id or user_id."}, status=status.HTTP_400_BAD_REQUEST)
 
 			# Validate payload
 			ser = AssignExtensionSerializer(data=request.data)

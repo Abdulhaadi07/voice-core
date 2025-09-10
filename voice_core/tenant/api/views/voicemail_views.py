@@ -99,7 +99,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
         try:
             assign_voicemail(tenant, user, voicemail_pin, voicemail_max_messages)
         except ValidationError as e:
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
+            msg = "Validation Error"
             logger.error(f"Voicemail assignment failed for tenant_id={tenant.id}, user_id={user.id}: {e}", exc_info=True)
             return Response(
                 {"message": f"Voicemail assignment failed: {msg}"},
@@ -139,8 +139,7 @@ class VoicemailViewSet(viewsets.GenericViewSet):
             tenant_id = int(tenant_id)
             user_id = int(user_id)
         except (ValueError, TypeError) as e:
-            msg = (list(e.detail.values())[0][0] if isinstance(e.detail, dict) else e.detail[0])
-            return Response({"message": f"Invalid tenant_id or user_id: {msg}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": f"Invalid tenant_id or user_id."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.select_related("tenant").get(pk=user_id, tenant_id=tenant_id)
