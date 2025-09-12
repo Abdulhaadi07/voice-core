@@ -7,8 +7,9 @@ from pathlib import Path
 
 def main():
     """Run administrative tasks."""
+ """ Django uses a setting structure (config/settings/), and its loading the (local.py) settings file for dev/local environments
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
-
+    
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
